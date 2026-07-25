@@ -61,7 +61,7 @@ const SEED_CHECKLIST = {
     },
     {
       name: "🥾 Aktivnosti",
-      items: ["Igre", "Pohodne palice", "Deske za kračarjanje (?)", "Naše vrage (?)", "Odbojkarska žoga", "Balinčki"]
+      items: ["Igre", "Pohodne palice", "Odbojkarska žoga", "Balinčki"]
     },
     {
       name: "🛏️ Spanje",
