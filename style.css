@@ -1,0 +1,435 @@
+/* ================================================================
+   CHECKLISTE - slog
+   Palete in barvne spremenljivke omogočajo svetlo in temno temo.
+   ================================================================ */
+
+:root {
+  --bg:            #f4f6f5;
+  --card:          #ffffff;
+  --card-2:        #fbfcfb;
+  --text:          #1f2724;
+  --text-soft:     #5c6b64;
+  --line:          #e6eae8;
+  --accent:        #2e9e6b;   /* zeleni poudarek */
+  --accent-soft:   #e3f4eb;
+  --accent-strong: #248456;
+  --danger:        #d9534f;
+  --shadow:        0 1px 2px rgba(20,40,30,.05), 0 6px 18px rgba(20,40,30,.06);
+  --radius:        14px;
+  --radius-sm:     9px;
+  --gap:           14px;
+}
+
+[data-theme="dark"] {
+  --bg:            #14181a;
+  --card:          #1e2427;
+  --card-2:        #232a2d;
+  --text:          #e8edeb;
+  --text-soft:     #9aa8a2;
+  --line:          #2c3439;
+  --accent:        #3fc389;
+  --accent-soft:   #1c3a2c;
+  --accent-strong: #56d69c;
+  --danger:        #e8706c;
+  --shadow:        0 1px 2px rgba(0,0,0,.25), 0 6px 20px rgba(0,0,0,.35);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: 60px;
+  transition: background .25s ease, color .25s ease;
+}
+
+/* ============ GLAVA ============ */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+
+.topbar-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 10px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: var(--shadow);
+}
+
+.brand-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+}
+
+/* Izbira checkliste */
+.checklist-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cl-select {
+  flex: 1 1 160px;
+  min-width: 140px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.picker-actions {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+  cursor: pointer;
+  transition: background .15s ease, transform .1s ease;
+}
+.icon-btn:hover { background: var(--card-2); }
+.icon-btn:active { transform: scale(.94); }
+.icon-btn.danger:hover { background: color-mix(in srgb, var(--danger) 14%, var(--card)); }
+
+/* Napredek */
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+.progress-count { color: var(--text-soft); font-weight: 600; }
+.progress-percent { color: var(--accent); font-weight: 700; }
+
+.progress-track {
+  height: 10px;
+  background: var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+  border-radius: 999px;
+  transition: width .35s cubic-bezier(.4,0,.2,1);
+}
+
+/* Iskalnik */
+.search-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--text);
+  font-size: 15px;
+}
+.search-input:focus {
+  outline: 2px solid var(--accent-soft);
+  border-color: var(--accent);
+}
+
+/* Orodna vrstica */
+.toolbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tool-btn {
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s ease, transform .1s ease, border-color .15s ease;
+}
+.tool-btn:hover { background: var(--card-2); border-color: var(--accent); }
+.tool-btn:active { transform: scale(.97); }
+.tool-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.tool-btn.primary:hover { background: var(--accent-strong); }
+
+/* ============ VSEBINA ============ */
+.content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* Kategorija */
+.category { overflow: hidden; }
+
+.cat-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+.cat-toggle {
+  border: none;
+  background: transparent;
+  color: var(--text-soft);
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform .2s ease;
+  padding: 4px;
+}
+.category.collapsed .cat-toggle { transform: rotate(-90deg); }
+.category.collapsed .item-list { display: none; }
+
+.cat-name {
+  margin: 0;
+  flex: 1;
+  font-size: 16px;
+  font-weight: 700;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.badge {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.badge.done { background: var(--accent); color: #fff; }
+
+.cat-actions,
+.item-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.mini-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--text-soft);
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background .15s ease, transform .1s ease;
+}
+.mini-btn:hover { background: var(--card-2); color: var(--text); }
+.mini-btn:active { transform: scale(.9); }
+.mini-btn.danger:hover { background: color-mix(in srgb, var(--danger) 16%, transparent); color: var(--danger); }
+
+/* Elementi */
+.item-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 6px 7px 10px;
+  border-radius: var(--radius-sm);
+  transition: background .15s ease;
+}
+.item:hover { background: var(--card-2); }
+.item.hidden { display: none; }
+
+.item-check {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  flex: 1;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.chk {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 21px;
+  height: 21px;
+  border: 2px solid var(--line);
+  border-radius: 7px;
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+  transition: background .15s ease, border-color .15s ease;
+}
+.chk:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.chk:checked::after {
+  content: "";
+  position: absolute;
+  left: 6px; top: 2px;
+  width: 5px; height: 10px;
+  border: solid #fff;
+  border-width: 0 2.5px 2.5px 0;
+  transform: rotate(45deg);
+}
+
+.item-text {
+  font-size: 15px;
+  overflow-wrap: anywhere;
+  transition: color .15s ease;
+}
+.item.done .item-text {
+  color: var(--accent);
+  text-decoration: line-through;
+}
+
+/* Prazno stanje */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-soft);
+}
+.empty-state p { margin: 6px 0; }
+
+/* ============ MODAL ============ */
+.modal-overlay[hidden] { display: none !important; }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,25,20,.45);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  z-index: 50;
+  animation: fade .15s ease;
+}
+.modal {
+  width: 100%;
+  max-width: 380px;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 22px;
+  animation: pop .18s ease;
+}
+.modal-title { margin: 0 0 8px; font-size: 18px; }
+.modal-message { margin: 0 0 14px; color: var(--text-soft); font-size: 15px; }
+.modal-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--card-2);
+  color: var(--text);
+  font-size: 15px;
+  margin-bottom: 16px;
+}
+.modal-input:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pop { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+
+/* ============ ODZIVNOST ============ */
+
+/* Širši zasloni (laptop / namizje): kompaktna glava v manj vrsticah,
+   da checklisti ostane več navpičnega prostora. */
+@media (min-width: 720px) {
+  /* Prva vrstica: znamka + izbirnik checkliste + napredek.
+     Druga vrstica: iskalnik levo, orodna vrstica desno. */
+  .topbar-inner {
+    display: grid;
+    grid-template-columns: auto 1fr minmax(200px, 260px);
+    grid-template-areas:
+      "brand picker progress"
+      "search toolbar toolbar";
+    align-items: center;
+    gap: 10px 16px;
+  }
+  .brand         { grid-area: brand; }
+  .checklist-picker { grid-area: picker; margin: 0; flex-wrap: nowrap; }
+  .progress-wrap { grid-area: progress; }
+  .search-wrap   { grid-area: search; }
+  .toolbar       { grid-area: toolbar; justify-content: flex-end; }
+
+  .brand-title   { white-space: nowrap; }
+  .progress-meta { margin-bottom: 4px; }
+}
+
+@media (max-width: 560px) {
+  body { font-size: 15px; }
+  .toolbar .tool-btn { flex: 1 1 auto; }
+  .cat-actions .mini-btn,
+  .item-actions .mini-btn { width: 34px; height: 34px; }
+  .brand-title { font-size: 18px; }
+  .content { padding: 14px 12px; }
+  .topbar-inner { padding: 10px 12px 12px; }
+}

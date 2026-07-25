@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checkliste</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ============ GLAVA ============ -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-mark">✓</span>
+        <h1 class="brand-title">Checkliste</h1>
+      </div>
+
+      <!-- Izbira aktivne checkliste + akcije nad njo -->
+      <div class="checklist-picker">
+        <select id="checklistSelect" class="cl-select" aria-label="Izberi checklisto"></select>
+        <div class="picker-actions">
+          <button id="btnNewChecklist" class="icon-btn" title="Nova checklista">＋</button>
+          <button id="btnRenameChecklist" class="icon-btn" title="Preimenuj">✏️</button>
+          <button id="btnDuplicateChecklist" class="icon-btn" title="Podvoji">⧉</button>
+          <button id="btnTemplateChecklist" class="icon-btn" title="Predloga (Template)">★</button>
+          <button id="btnNewFromTemplate" class="icon-btn" title="Nova iz predloge">📄</button>
+          <button id="btnDeleteChecklist" class="icon-btn danger" title="Izbriši checklisto">🗑️</button>
+        </div>
+      </div>
+
+      <!-- Napredek -->
+      <div class="progress-wrap">
+        <div class="progress-meta">
+          <span id="progressCount" class="progress-count">0 / 0</span>
+          <span id="progressPercent" class="progress-percent">0%</span>
+        </div>
+        <div class="progress-track">
+          <div id="progressBar" class="progress-fill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- Iskalnik -->
+      <div class="search-wrap">
+        <input id="searchInput" class="search-input" type="search" placeholder="Poišči element..." aria-label="Iskanje" />
+      </div>
+
+      <!-- Orodna vrstica -->
+      <div class="toolbar">
+        <button id="btnCheckAll" class="tool-btn">✓ Označi vse</button>
+        <button id="btnClearAll" class="tool-btn">↺ Počisti vse</button>
+        <button id="btnAddCategory" class="tool-btn">＋ Kategorija</button>
+        <button id="btnExportActive" class="tool-btn">📤 Izvozi aktivno</button>
+        <button id="btnExportAll" class="tool-btn">📤 Izvozi vse</button>
+        <button id="btnImport" class="tool-btn">📥 Uvozi</button>
+        <button id="btnTheme" class="tool-btn">🌙 Tema</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ VSEBINA ============ -->
+  <main id="categoryList" class="content" aria-live="polite"></main>
+
+  <!-- Skriti file input za uvoz -->
+  <input id="importFile" type="file" accept="application/json,.json" hidden />
+
+  <!-- ============ MODAL ZA VNOS ============ -->
+  <div id="modalOverlay" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true">
+      <h2 id="modalTitle" class="modal-title">Naslov</h2>
+      <p id="modalMessage" class="modal-message"></p>
+      <input id="modalInput" class="modal-input" type="text" hidden />
+      <div class="modal-actions">
+        <button id="modalCancel" class="tool-btn">Prekliči</button>
+        <button id="modalConfirm" class="tool-btn primary">Potrdi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Predloga (template) za kategorijo -->
+  <template id="tplCategory">
+    <section class="category card" data-cat-id="">
+      <div class="cat-head">
+        <button class="cat-toggle" title="Razširi / Skrči">▼</button>
+        <h3 class="cat-name"></h3>
+        <span class="cat-progress badge">0/0</span>
+        <div class="cat-actions">
+          <button class="mini-btn act-add-item" title="Dodaj element">➕</button>
+          <button class="mini-btn act-rename-cat" title="Uredi">✏️</button>
+          <button class="mini-btn act-up" title="Premakni gor">↑</button>
+          <button class="mini-btn act-down" title="Premakni dol">↓</button>
+          <button class="mini-btn danger act-del-cat" title="Izbriši">🗑️</button>
+        </div>
+      </div>
+      <ul class="item-list"></ul>
+    </section>
+  </template>
+
+  <!-- Predloga za element -->
+  <template id="tplItem">
+    <li class="item" data-item-id="">
+      <label class="item-check">
+        <input type="checkbox" class="chk" />
+        <span class="item-text"></span>
+      </label>
+      <div class="item-actions">
+        <button class="mini-btn act-move-item" title="Premakni v kategorijo">↔</button>
+        <button class="mini-btn act-item-up" title="Gor">↑</button>
+        <button class="mini-btn act-item-down" title="Dol">↓</button>
+        <button class="mini-btn act-edit-item" title="Uredi">✏️</button>
+        <button class="mini-btn danger act-del-item" title="Izbriši">🗑️</button>
+      </div>
+    </li>
+  </template>
+
+  <script src="script.js"></script>
+</body>
+</html>
