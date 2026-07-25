@@ -674,6 +674,28 @@ function bindTopbar() {
   });
 
   els.search.addEventListener("input", applySearch);
+
+  // Zložljiva menija (samo telefon). Ob odprtju enega se drugi zapre.
+  const panelChecklist = $("#panelChecklist");
+  const panelTools = $("#panelTools");
+  const trigChecklist = $("#toggleChecklistMenu");
+  const trigTools = $("#toggleToolsMenu");
+
+  function togglePanel(panel, trigger, other, otherTrig) {
+    const willOpen = !panel.classList.contains("open");
+    panel.classList.toggle("open", willOpen);
+    trigger.setAttribute("aria-expanded", String(willOpen));
+    // zapri drugega
+    other.classList.remove("open");
+    otherTrig.setAttribute("aria-expanded", "false");
+  }
+
+  trigChecklist.addEventListener("click", () =>
+    togglePanel(panelChecklist, trigChecklist, panelTools, trigTools)
+  );
+  trigTools.addEventListener("click", () =>
+    togglePanel(panelTools, trigTools, panelChecklist, trigChecklist)
+  );
 }
 
 /**

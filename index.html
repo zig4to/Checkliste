@@ -15,20 +15,44 @@
         <h1 class="brand-title">Checkliste</h1>
       </div>
 
-      <!-- Izbira aktivne checkliste + akcije nad njo -->
-      <div class="checklist-picker">
-        <select id="checklistSelect" class="cl-select" aria-label="Izberi checklisto"></select>
-        <div class="picker-actions">
-          <button id="btnNewChecklist" class="icon-btn" title="Nova checklista">＋</button>
-          <button id="btnRenameChecklist" class="icon-btn" title="Preimenuj">✏️</button>
-          <button id="btnDuplicateChecklist" class="icon-btn" title="Podvoji">⧉</button>
-          <button id="btnTemplateChecklist" class="icon-btn" title="Predloga (Template)">★</button>
-          <button id="btnNewFromTemplate" class="icon-btn" title="Nova iz predloge">📄</button>
-          <button id="btnDeleteChecklist" class="icon-btn danger" title="Izbriši checklisto">🗑️</button>
+      <!-- Sprožilci zložljivih menijev (vidni samo na telefonu) -->
+      <div class="menu-triggers">
+        <button id="toggleChecklistMenu" class="menu-trigger" aria-expanded="false">📋 Checkliste ▾</button>
+        <button id="toggleToolsMenu" class="menu-trigger" aria-expanded="false">⚙️ Orodja ▾</button>
+      </div>
+
+      <!-- PANEL 1: urejanje / izbira checkliste -->
+      <div class="panel panel-checklist" id="panelChecklist">
+        <div class="checklist-picker">
+          <select id="checklistSelect" class="cl-select" aria-label="Izberi checklisto"></select>
+          <div class="picker-actions">
+            <button id="btnNewChecklist" class="icon-btn" title="Nova checklista">＋</button>
+            <button id="btnRenameChecklist" class="icon-btn" title="Preimenuj">✏️</button>
+            <button id="btnDuplicateChecklist" class="icon-btn" title="Podvoji">⧉</button>
+            <button id="btnTemplateChecklist" class="icon-btn" title="Predloga (Template)">★</button>
+            <button id="btnNewFromTemplate" class="icon-btn" title="Nova iz predloge">📄</button>
+            <button id="btnDeleteChecklist" class="icon-btn danger" title="Izbriši checklisto">🗑️</button>
+          </div>
         </div>
       </div>
 
-      <!-- Napredek -->
+      <!-- PANEL 2: iskalnik + orodja -->
+      <div class="panel panel-tools" id="panelTools">
+        <div class="search-wrap">
+          <input id="searchInput" class="search-input" type="search" placeholder="Poišči element..." aria-label="Iskanje" />
+        </div>
+        <div class="toolbar">
+          <button id="btnCheckAll" class="tool-btn">✓ Označi vse</button>
+          <button id="btnClearAll" class="tool-btn">↺ Počisti vse</button>
+          <button id="btnAddCategory" class="tool-btn">＋ Kategorija</button>
+          <button id="btnExportActive" class="tool-btn">📤 Izvozi aktivno</button>
+          <button id="btnExportAll" class="tool-btn">📤 Izvozi vse</button>
+          <button id="btnImport" class="tool-btn">📥 Uvozi</button>
+          <button id="btnTheme" class="tool-btn">🌙 Tema</button>
+        </div>
+      </div>
+
+      <!-- Napredek (vedno viden, pod menijema) -->
       <div class="progress-wrap">
         <div class="progress-meta">
           <span id="progressCount" class="progress-count">0 / 0</span>
@@ -37,22 +61,6 @@
         <div class="progress-track">
           <div id="progressBar" class="progress-fill" style="width:0%"></div>
         </div>
-      </div>
-
-      <!-- Iskalnik -->
-      <div class="search-wrap">
-        <input id="searchInput" class="search-input" type="search" placeholder="Poišči element..." aria-label="Iskanje" />
-      </div>
-
-      <!-- Orodna vrstica -->
-      <div class="toolbar">
-        <button id="btnCheckAll" class="tool-btn">✓ Označi vse</button>
-        <button id="btnClearAll" class="tool-btn">↺ Počisti vse</button>
-        <button id="btnAddCategory" class="tool-btn">＋ Kategorija</button>
-        <button id="btnExportActive" class="tool-btn">📤 Izvozi aktivno</button>
-        <button id="btnExportAll" class="tool-btn">📤 Izvozi vse</button>
-        <button id="btnImport" class="tool-btn">📥 Uvozi</button>
-        <button id="btnTheme" class="tool-btn">🌙 Tema</button>
       </div>
     </div>
   </header>

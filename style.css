@@ -96,6 +96,30 @@ body {
   letter-spacing: -.01em;
 }
 
+/* Sprožilci zložljivih menijev: skriti na desktopu, vidni na telefonu */
+.menu-triggers { display: none; }
+
+.menu-trigger {
+  flex: 1;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s ease;
+}
+.menu-trigger[aria-expanded="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+/* Panela sta na desktopu vedno prikazana (kot navadna vsebina) */
+.panel { display: contents; }
+
 /* Izbira checkliste */
 .checklist-picker {
   display: flex;
@@ -424,12 +448,59 @@ body {
   .progress-meta { margin-bottom: 4px; }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 719px) {
   body { font-size: 15px; }
-  .toolbar .tool-btn { flex: 1 1 auto; }
-  .cat-actions .mini-btn,
-  .item-actions .mini-btn { width: 34px; height: 34px; }
   .brand-title { font-size: 18px; }
   .content { padding: 14px 12px; }
-  .topbar-inner { padding: 10px 12px 12px; }
+  .topbar-inner { padding: 10px 12px 12px; gap: 8px; }
+
+  /* Pokaži sprožilce menijev */
+  .menu-triggers {
+    display: flex;
+    gap: 8px;
+  }
+
+  /* Panela postaneta zložljiva: privzeto skrita */
+  .panel {
+    display: block;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height .28s ease, opacity .2s ease, margin .2s ease;
+  }
+  .panel.open {
+    max-height: 520px;
+    opacity: 1;
+    margin-top: 2px;
+  }
+
+  /* Vsebina panelov naj se lepo zlaga navpično */
+  .panel .checklist-picker { flex-wrap: wrap; }
+  .panel .toolbar { margin-top: 8px; }
+  .toolbar .tool-btn { flex: 1 1 auto; }
+
+  /* Kategorija: ime v svoji vrstici, gumbi spodaj (da dolgo ime ne stiska) */
+  .cat-head {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .cat-toggle { order: 0; }
+  .cat-name {
+    flex: 1 1 auto;
+    order: 1;
+    min-width: 0;
+    padding-right: 4px;
+  }
+  /* Nevidni prelom: napredek in gumbi se preselijo v novo vrstico */
+  .cat-head::after {
+    content: "";
+    flex-basis: 100%;
+    order: 2;
+    height: 0;
+  }
+  .cat-progress { order: 3; margin-right: auto; }
+  .cat-actions  { order: 4; flex-wrap: wrap; }
+
+  .cat-actions .mini-btn,
+  .item-actions .mini-btn { width: 34px; height: 34px; }
 }
