@@ -1,6 +1,6 @@
 /* ================================================================
    CHECKLISTE - slog
-   Palete in barvne spremenljivke omogočajo svetlo in temno temo.
+   Palete in barvne spremenljivke omogoÄŤajo svetlo in temno temo.
    ================================================================ */
 
 :root {
@@ -96,7 +96,7 @@ body {
   letter-spacing: -.01em;
 }
 
-/* Sprožilci zložljivih menijev: skriti na desktopu, vidni na telefonu */
+/* SproĹľilci zloĹľljivih menijev: skriti na desktopu, vidni na telefonu */
 .menu-triggers { display: none; }
 
 .menu-trigger {
@@ -419,13 +419,38 @@ body {
   gap: 8px;
 }
 
+/* Scan modal (pregled OCR besedila) */
+.scan-modal { max-width: 480px; }
+.scan-textarea {
+  width: 100%;
+  min-height: 220px;
+  max-height: 50vh;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--card-2);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+  resize: vertical;
+}
+.scan-textarea:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+.scan-hint {
+  margin: 0 0 14px;
+  font-size: 12.5px;
+  color: var(--text-soft);
+}
+.scan-modal .modal-input { margin-bottom: 10px; }
+
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes pop { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
 
 /* ============ ODZIVNOST ============ */
 
-/* Širši zasloni (laptop / namizje): kompaktna glava v manj vrsticah,
-   da checklisti ostane več navpičnega prostora. */
+/* Ĺ irĹˇi zasloni (laptop / namizje): kompaktna glava v manj vrsticah,
+   da checklisti ostane veÄŤ navpiÄŤnega prostora. */
 @media (min-width: 720px) {
   /* Prva vrstica: znamka + izbirnik checkliste + napredek.
      Druga vrstica: iskalnik levo, orodna vrstica desno. */
@@ -454,13 +479,13 @@ body {
   .content { padding: 14px 12px; }
   .topbar-inner { padding: 10px 12px 12px; gap: 8px; }
 
-  /* Pokaži sprožilce menijev */
+  /* PokaĹľi sproĹľilce menijev */
   .menu-triggers {
     display: flex;
     gap: 8px;
   }
 
-  /* Panela postaneta zložljiva: privzeto skrita */
+  /* Panela postaneta zloĹľljiva: privzeto skrita */
   .panel {
     display: block;
     max-height: 0;
@@ -474,7 +499,7 @@ body {
     margin-top: 2px;
   }
 
-  /* Vsebina panelov naj se lepo zlaga navpično */
+  /* Vsebina panelov naj se lepo zlaga navpiÄŤno */
   .panel .checklist-picker { flex-wrap: wrap; }
   .panel .toolbar { margin-top: 8px; }
   .toolbar .tool-btn { flex: 1 1 auto; }
