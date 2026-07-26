@@ -48,6 +48,7 @@
           <button id="btnExportActive" class="tool-btn">📤 Izvozi aktivno</button>
           <button id="btnExportAll" class="tool-btn">📤 Izvozi vse</button>
           <button id="btnImport" class="tool-btn">📥 Uvozi</button>
+          <button id="btnScan" class="tool-btn">📷 Skeniraj sliko</button>
           <button id="btnTheme" class="tool-btn">🌙 Tema</button>
         </div>
       </div>
@@ -70,6 +71,25 @@
 
   <!-- Skriti file input za uvoz -->
   <input id="importFile" type="file" accept="application/json,.json" hidden />
+
+  <!-- Skrita inputa za skeniranje slike -->
+  <input id="scanFileGallery" type="file" accept="image/*" hidden />
+  <input id="scanFileCamera" type="file" accept="image/*" capture="environment" hidden />
+
+  <!-- ============ MODAL ZA PREGLED SKENIRANEGA BESEDILA ============ -->
+  <div id="scanOverlay" class="modal-overlay" hidden>
+    <div class="modal scan-modal" role="dialog" aria-modal="true">
+      <h2 class="modal-title">Pregled skeniranega seznama</h2>
+      <p class="modal-message" id="scanStatus">Preglej in po potrebi popravi besedilo. Prazna vrstica loči kategorije. Prva vrstica pred elementi je lahko ime kategorije.</p>
+      <input id="scanName" class="modal-input" type="text" placeholder="Ime nove checkliste" />
+      <textarea id="scanText" class="scan-textarea" placeholder="Skenirano besedilo se prikaže tukaj ..." spellcheck="false"></textarea>
+      <p class="scan-hint">Namig: napiši ime kategorije v svojo vrstico, pod njo elemente, nato prazno vrstico pred naslednjo kategorijo.</p>
+      <div class="modal-actions">
+        <button id="scanCancel" class="tool-btn">Prekliči</button>
+        <button id="scanConfirm" class="tool-btn primary">Ustvari checklisto</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ============ MODAL ZA VNOS ============ -->
   <div id="modalOverlay" class="modal-overlay" hidden>
@@ -120,6 +140,8 @@
     </li>
   </template>
 
+  <!-- Tesseract.js za OCR (naloži se s CDN, potrebuje internet ob prvem zajemu) -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
