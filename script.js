@@ -669,6 +669,147 @@ function toggleTheme() {
 }
 
 /* ================================================================
+   SKENIRANJE SLIKE (OCR prek Tesseract.js)
+   Potek: izbira vira -> OCR -> pregled besedila -> nova checklista
+   ================================================================ */
+
+const scan = {
+  overlay: $("#scanOverlay"),
+  status:  $("#scanStatus"),
+  name:    $("#scanName"),
+  text:    $("#scanText"),
+  cancel:  $("#scanCancel"),
+  confirm: $("#scanConfirm"),
+  fileGallery: $("#scanFileGallery"),
+  fileCamera:  $("#scanFileCamera")
+};
+
+/** Ali smo na telefonu (za ponudbo kamere). */
+const isMobile = () =>
+  /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || window.innerWidth < 720;
+
+/** Sproži skeniranje: na telefonu vpraša kamera ali galerija, sicer kar galerija. */
+async function startScan() {
+  // Preveri, ali je Tesseract naložen (CDN morda ni dosegljiv brez interneta).
+  if (typeof Tesseract === "undefined") {
+    await confirmDialog(
+      "Knjižnica za prepoznavo besedila se ni naložila. Preveri internetno povezavo in poskusi znova.",
+      "OCR ni na voljo"
+    );
+    return;
+  }
+
+  if (isMobile()) {
+    const useCamera = await confirmDialog(
+      "«Potrdi» = zajemi s kamero\n«Prekliči» = izberi sliko iz galerije",
+      "Skeniraj seznam"
+    );
+    if (useCamera) scan.fileCamera.click();
+    else scan.fileGallery.click();
+  } else {
+    scan.fileGallery.click();
+  }
+}
+
+/** Obdela izbrano sliko: zažene OCR in odpre modal za pregled. */
+async function processScanImage(file) {
+  if (!file) return;
+
+  // Odpri modal takoj, da uporabnik vidi napredek.
+  scan.name.value = "Skenirana checklista";
+  scan.text.value = "";
+  scan.confirm.disabled = true;
+  scan.status.textContent = "Berem besedilo iz slike ... (0 %)";
+  scan.overlay.hidden = false;
+
+  try {
+    const result = await Tesseract.recognize(file, "slv+eng", {
+      logger: (m) => {
+        if (m.status === "recognizing text") {
+          const pct = Math.round((m.progress || 0) * 100);
+          scan.status.textContent = `Berem besedilo iz slike ... (${pct} %)`;
+        }
+      }
+    });
+    const raw = (result.data.text || "").trim();
+    scan.text.value = cleanScanText(raw);
+    scan.status.textContent = raw
+      ? "Preglej in po potrebi popravi besedilo. Prazna vrstica loči kategorije."
+      : "Nisem prepoznal besedila. Lahko ga vpišeš ročno spodaj.";
+  } catch (e) {
+    console.error(e);
+    scan.status.textContent = "Napaka pri branju slike. Besedilo lahko vpišeš ročno.";
+  } finally {
+    scan.confirm.disabled = false;
+  }
+}
+
+/** Osnovno čiščenje OCR besedila (odstrani prazne robove, pogoste smeti). */
+function cleanScanText(raw) {
+  return raw
+    .split("\n")
+    .map((line) => line.replace(/^[\s•·\-–—*▪◦☐☑\[\]()]+/, "").trimEnd())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n") // strni več praznih vrstic v eno
+    .trim();
+}
+
+/**
+ * Razčleni besedilo v kategorije in elemente.
+ * Pravilo: prazna vrstica loči kategorije. Znotraj bloka je prva vrstica
+ * ime kategorije, ostale so elementi. Če je v bloku samo ena vrstica,
+ * gre pod privzeto kategorijo "Elementi".
+ */
+function parseScanText(text) {
+  const blocks = text
+    .split(/\n\s*\n/)          // prazne vrstice ločijo bloke
+    .map((b) => b.split("\n").map((l) => l.trim()).filter(Boolean))
+    .filter((lines) => lines.length);
+
+  const categories = [];
+  blocks.forEach((lines) => {
+    if (lines.length === 1) {
+      // Osamljena vrstica: dodaj kot element v splošno kategorijo.
+      let general = categories.find((c) => c.name === "Elementi");
+      if (!general) { general = { name: "Elementi", items: [] }; categories.push(general); }
+      general.items.push(lines[0]);
+    } else {
+      const [name, ...items] = lines;
+      categories.push({ name, items });
+    }
+  });
+  return categories;
+}
+
+/** Ustvari novo checklisto iz pregledanega besedila. */
+function confirmScan() {
+  const name = scan.name.value.trim() || "Skenirana checklista";
+  const cats = parseScanText(scan.text.value);
+
+  if (!cats.length) {
+    scan.status.textContent = "Ni vsebine za uvoz. Vpiši vsaj eno kategorijo in element.";
+    return;
+  }
+
+  const cl = {
+    id: uid("cl"),
+    name,
+    isTemplate: false,
+    categories: cats.map((c) => ({
+      id: uid("cat"),
+      name: c.name,
+      collapsed: false,
+      items: c.items.map((t) => ({ id: uid("it"), text: t, done: false }))
+    }))
+  };
+
+  store.checklists.push(cl);
+  store.activeId = cl.id;
+  scan.overlay.hidden = true;
+  renderAll();
+}
+
+/* ================================================================
    DOGODKI
    ================================================================ */
 
@@ -692,7 +833,25 @@ function bindTopbar() {
   $("#btnExportActive").addEventListener("click", exportActive);
   $("#btnExportAll").addEventListener("click", exportAll);
   $("#btnImport").addEventListener("click", () => els.importFile.click());
+  $("#btnScan").addEventListener("click", startScan);
   $("#btnTheme").addEventListener("click", toggleTheme);
+
+  // Skeniranje: obravnava izbrane slike
+  scan.fileGallery.addEventListener("change", (e) => {
+    const f = e.target.files[0];
+    if (f) processScanImage(f);
+    e.target.value = "";
+  });
+  scan.fileCamera.addEventListener("change", (e) => {
+    const f = e.target.files[0];
+    if (f) processScanImage(f);
+    e.target.value = "";
+  });
+  scan.confirm.addEventListener("click", confirmScan);
+  scan.cancel.addEventListener("click", () => { scan.overlay.hidden = true; });
+  scan.overlay.addEventListener("click", (e) => {
+    if (e.target === scan.overlay) scan.overlay.hidden = true;
+  });
 
   els.importFile.addEventListener("change", (e) => {
     const file = e.target.files[0];
@@ -771,11 +930,12 @@ function bindCategoryList() {
    ================================================================ */
 
 function init() {
-  // Varovalo: modal naj bo ob zagonu vedno skrit (za primer napačnega stanja).
+  // Varovalo: modala naj bosta ob zagonu vedno skrita.
   if (modal.overlay) {
     modal.overlay.hidden = true;
     modal.input.hidden = true;
   }
+  if (scan.overlay) scan.overlay.hidden = true;
   initTheme();
   bindTopbar();
   bindCategoryList();
