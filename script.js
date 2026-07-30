@@ -7,7 +7,7 @@
      seeded: true,               // ali je bila začetna lista že uvožena
      checklists: [
        {
-         id, name, isTemplate,
+         id, name,
          categories: [
            { id, name, collapsed, items: [ { id, text, done } ] }
          ]
@@ -35,7 +35,6 @@ const clone = (obj) => JSON.parse(JSON.stringify(obj));
 const SEED_CHECKLISTS = [
   {
     name: "🚐 Car Camping Checklist",
-    isTemplate: false,
     categories: [
       { name: "🏕️ Kamp oprema", items: ["Mizica", "Stoli", "Dodatna lesena mizica za razširitev", "Kovtri", "Piknik deka", "Viseča mreža", "Pokrivala za okna", "Toaleta", "Nahrbtnik", "Sleep mask", "Čepki za ušesa"] },
       { name: "🍳 Kuhinja", items: ["Plinski gorilnik", "Bomba + cev", "Ključ za bombo", "Posoda za kuhanje", "Dober nož", "Deska za rezanje", "Pribor", "Šalce", "Kozarčki", "Krožniki", "Džezva", "Kava", "Juha", "Rezervoar z vodo", "Meh za vodo", "Hladilna skrinja + pingvini", "Tupperware", "Gobica (za posodo)", "Cet (za posodo)"] },
@@ -50,7 +49,6 @@ const SEED_CHECKLISTS = [
   },
   {
     name: "Splitboarding Checklist",
-    isTemplate: false,
     categories: [
       { name: "Oprema", items: ["Bord/smuče", "Vezi", "Buci/pancarji", "Plazovni trojček", "Palice", "Kože", "Čelada", "Očala", "Srenači", "Nahrbtnik", "Komplet orodja", "Čelna svetilka", "Prva pomoč"] },
       { name: "Oblačila", items: ["Baselayer", "Švic majica", "Švic hlače", "Preobleči švic majico", "Flis", "Štumfi", "Buff"] },
@@ -61,7 +59,6 @@ const SEED_CHECKLISTS = [
   },
   {
     name: "Bikepacking Trip",
-    isTemplate: true,
     categories: [
       { name: "Kolo in oprema", items: ["Kolo", "Čelada", "Kolesarski čevlji", "Pedala", "Kolesarske rokavice", "Sončna očala", "Prednja luč", "Zadnja luč", "GPS / kolesarski računalnik", "Nosilci / torbe", "Bidoni", "Ključavnica"] },
       { name: "Servis in rezervni deli", items: ["Mini tlačilka", "Rezervna zračnica", "Tubeless čepi", "CO₂ kartuša", "Multitool", "Rezervna verižna spojka", "Orodje za verigo", "Rezervne zavorne ploščice", "Mazivo za verigo", "Vezice", "Duct tape"] },
@@ -75,7 +72,6 @@ const SEED_CHECKLISTS = [
   },
   {
     name: "Multiday Backpacking Trip",
-    isTemplate: true,
     categories: [
       { name: "Nahrbtnik in oprema", items: ["Pohodni nahrbtnik", "Dežna prevleka za nahrbtnik", "Pohodne palice", "Čelna svetilka", "Rezervne baterije", "Nož / multitool", "Vžigalnik", "Vrvica (Paracord)", "Lepilni trak (Duct Tape)", "Powerbank", "Polnilni kabli", "Telefon", "Ura / GPS"] },
       { name: "Spanje", items: ["Šotor", "Količki", "Napenjalne vrvice", "Podloga za šotor", "Spalna vreča", "Napihljiva blazina", "Vzglavnik", "Repair kit za blazino"] },
@@ -89,7 +85,6 @@ const SEED_CHECKLISTS = [
   },
   {
     name: "Piknik na travniku",
-    isTemplate: true,
     categories: [
       { name: "Oprema", items: ["Piknik odeja", "Zložljiva stola", "Miza (po potrebi)", "Senčnik", "Hladilna torba", "Ledeni vložki", "Vreče za smeti", "Papirnate brisače"] },
       { name: "Hrana", items: ["Sendviči", "Sadje", "Prigrizki", "Sir", "Suhomesnati izdelki", "Sladica"] },
@@ -106,7 +101,6 @@ function buildSeedStore() {
   const checklists = SEED_CHECKLISTS.map((def) => ({
     id: uid("cl"),
     name: def.name,
-    isTemplate: !!def.isTemplate,
     categories: def.categories.map((c) => ({
       id: uid("cat"),
       name: c.name,
@@ -230,7 +224,7 @@ function renderSelect() {
   store.checklists.forEach((cl) => {
     const opt = document.createElement("option");
     opt.value = cl.id;
-    opt.textContent = cl.isTemplate ? `★ ${cl.name}` : cl.name;
+    opt.textContent = cl.name;
     if (cl.id === store.activeId) opt.selected = true;
     els.select.appendChild(opt);
   });
@@ -325,7 +319,7 @@ function renderAll({ persist = true } = {}) {
 async function newChecklist() {
   const name = await promptDialog("Ime nove checkliste:", "Nova checklista", "Nova checklista");
   if (!name) return;
-  const cl = { id: uid("cl"), name, isTemplate: false, categories: [] };
+  const cl = { id: uid("cl"), name, categories: [] };
   store.checklists.push(cl);
   store.activeId = cl.id;
   renderAll();
@@ -344,7 +338,6 @@ function duplicateChecklist() {
   const copy = clone(cl);
   copy.id = uid("cl");
   copy.name = `${cl.name} (kopija)`;
-  copy.isTemplate = false;
   reassignIds(copy);
   store.checklists.push(copy);
   store.activeId = copy.id;
@@ -361,47 +354,6 @@ async function deleteChecklist() {
   if (!ok) return;
   store.checklists = store.checklists.filter((c) => c.id !== cl.id);
   store.activeId = store.checklists[0].id;
-  renderAll();
-}
-
-async function toggleTemplate() {
-  const cl = getActive();
-  cl.isTemplate = !cl.isTemplate;
-  await confirmDialog(
-    cl.isTemplate
-      ? `«${cl.name}» je zdaj označena kot predloga.`
-      : `«${cl.name}» ni več predloga.`,
-    "Predloga"
-  );
-  renderAll();
-}
-
-/** Ustvari novo checklisto iz izbrane predloge (vsi elementi neodkljukani). */
-async function newFromTemplate() {
-  const templates = store.checklists.filter((c) => c.isTemplate);
-  if (!templates.length) {
-    await confirmDialog("Nimaš še nobene predloge. Checklisto označi kot predlogo z gumbom ★.", "Ni predlog");
-    return;
-  }
-  // Če je aktivna predloga, uporabi njo; sicer prvo predlogo.
-  const active = getActive();
-  const source = active.isTemplate ? active : templates[0];
-
-  const name = await promptDialog(
-    `Ime nove checkliste iz predloge «${source.name}»:`,
-    source.name.replace(/^★\s*/, ""),
-    "Nova iz predloge"
-  );
-  if (!name) return;
-
-  const copy = clone(source);
-  copy.id = uid("cl");
-  copy.name = name;
-  copy.isTemplate = false;
-  reassignIds(copy);
-  copy.categories.forEach((cat) => cat.items.forEach((it) => (it.done = false)));
-  store.checklists.push(copy);
-  store.activeId = copy.id;
   renderAll();
 }
 
@@ -641,7 +593,6 @@ function normalizeChecklist(cl) {
   return {
     id: cl.id || uid("cl"),
     name: cl.name || "Uvožena checklista",
-    isTemplate: !!cl.isTemplate,
     categories: (cl.categories || []).map((cat) => ({
       id: cat.id || uid("cat"),
       name: cat.name || "Kategorija",
@@ -796,7 +747,6 @@ function confirmScan() {
   const cl = {
     id: uid("cl"),
     name,
-    isTemplate: false,
     categories: cats.map((c) => ({
       id: uid("cat"),
       name: c.name,
@@ -825,8 +775,6 @@ function bindTopbar() {
   $("#btnNewChecklist").addEventListener("click", newChecklist);
   $("#btnRenameChecklist").addEventListener("click", renameChecklist);
   $("#btnDuplicateChecklist").addEventListener("click", duplicateChecklist);
-  $("#btnTemplateChecklist").addEventListener("click", toggleTemplate);
-  $("#btnNewFromTemplate").addEventListener("click", newFromTemplate);
   $("#btnDeleteChecklist").addEventListener("click", deleteChecklist);
 
   $("#btnCheckAll").addEventListener("click", () => setAll(true));
