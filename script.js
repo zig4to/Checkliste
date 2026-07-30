@@ -154,6 +154,7 @@ const els = {
   select:        $("#checklistSelect"),
   categoryList:  $("#categoryList"),
   search:        $("#searchInput"),
+  progressWrap:  $(".progress-wrap"),
   progressBar:   $("#progressBar"),
   progressCount: $("#progressCount"),
   progressPct:   $("#progressPercent"),
@@ -252,6 +253,7 @@ function renderProgress() {
   els.progressBar.style.width = pct + "%";
   els.progressCount.textContent = `${done} / ${total}`;
   els.progressPct.textContent = pct + "%";
+  els.progressWrap.hidden = done === 0;
 }
 
 /** Izriše vse kategorije in elemente aktivne checkliste. */
