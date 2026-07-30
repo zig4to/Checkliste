@@ -416,10 +416,22 @@ function toggleCollapse(catId, node) {
    AKCIJE - ELEMENTI
    ================================================================ */
 
+/** Ali element z enakim besedilom že obstaja kjerkoli v checklisti (v kateri koli kategoriji). */
+function itemTextExists(cl, text, excludeItemId = null) {
+  const norm = text.trim().toLowerCase();
+  return cl.categories.some((cat) =>
+    cat.items.some((it) => it.id !== excludeItemId && it.text.trim().toLowerCase() === norm)
+  );
+}
+
 async function addItem(catId) {
   const cat = getCat(getActive(), catId);
   const text = await promptDialog(`Nov element v «${cat.name}»:`, "", "Dodaj element");
   if (!text) return;
+  if (itemTextExists(getActive(), text)) {
+    await confirmDialog(`Element «${text}» že obstaja na tej checklisti.`, "Podvojen element");
+    return;
+  }
   cat.items.push({ id: uid("it"), text, done: false });
   if (cat.collapsed) cat.collapsed = false;
   renderAll();
@@ -430,6 +442,10 @@ async function editItem(catId, itemId) {
   const item = cat.items.find((i) => i.id === itemId);
   const text = await promptDialog("Uredi element:", item.text, "Uredi element");
   if (!text) return;
+  if (itemTextExists(getActive(), text, itemId)) {
+    await confirmDialog(`Element «${text}» že obstaja na tej checklisti.`, "Podvojen element");
+    return;
+  }
   item.text = text;
   renderAll();
 }
@@ -481,6 +497,10 @@ async function moveItemToCategory(catId, itemId) {
   }
   const cat = getCat(cl, catId);
   const item = cat.items.find((i) => i.id === itemId);
+  if (itemTextExists(cl, item.text, itemId)) {
+    await confirmDialog(`Element «${item.text}» že obstaja v drugi kategoriji.`, "Podvojen element");
+    return;
+  }
   cat.items = cat.items.filter((i) => i.id !== itemId);
   others[idx].items.push(item);
   renderAll();

@@ -528,4 +528,10 @@ body {
 
   .cat-actions .mini-btn,
   .item-actions .mini-btn { width: 34px; height: 34px; }
+
+  /* Zaprta kategorija: skrij tudi znacko s stevilom in gumbe za urejanje */
+  .category.collapsed .cat-progress,
+  .category.collapsed .cat-actions {
+    display: none;
+  }
 }
