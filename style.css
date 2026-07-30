@@ -120,14 +120,6 @@ body {
 /* Panela sta na desktopu vedno prikazana (kot navadna vsebina) */
 .panel { display: contents; }
 
-/* Izbira checkliste */
-.checklist-picker {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
 .cl-select {
   flex: 1 1 160px;
   min-width: 140px;
@@ -457,7 +449,7 @@ body {
      Druga vrstica: iskalnik levo, orodna vrstica desno. */
   .topbar-inner {
     display: grid;
-    grid-template-columns: auto 1fr minmax(200px, 260px);
+    grid-template-columns: minmax(260px, 340px) 1fr minmax(200px, 260px);
     grid-template-areas:
       "brand picker progress"
       "search toolbar toolbar";
@@ -465,7 +457,7 @@ body {
     gap: 10px 16px;
   }
   .brand         { grid-area: brand; }
-  .checklist-picker { grid-area: picker; margin: 0; flex-wrap: nowrap; }
+  .picker-actions { grid-area: picker; flex-wrap: nowrap; }
   .progress-wrap { grid-area: progress; }
   .search-wrap   { grid-area: search; }
   .toolbar       { grid-area: toolbar; justify-content: flex-end; }
@@ -476,9 +468,12 @@ body {
 
 @media (max-width: 719px) {
   body { font-size: 15px; }
-  .brand-title { font-size: 18px; }
   .content { padding: 14px 12px; }
   .topbar-inner { padding: 10px 12px 12px; gap: 8px; }
+
+  /* Namesto naslova "Checkliste" pokazi izbirnik checkliste na vrhu */
+  .brand-title { display: none; }
+  .brand .cl-select { flex: 1 1 auto; min-width: 0; }
 
   /* PokaĹľi sproĹľilce menijev */
   .menu-triggers {
@@ -501,7 +496,7 @@ body {
   }
 
   /* Vsebina panelov naj se lepo zlaga navpiÄŤno */
-  .panel .checklist-picker { flex-wrap: wrap; }
+  .panel .picker-actions { flex-wrap: wrap; }
   .panel .toolbar { margin-top: 8px; }
   .toolbar .tool-btn { flex: 1 1 auto; }
 

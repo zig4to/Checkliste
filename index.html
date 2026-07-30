@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Checkliste</title>
-  <link rel="stylesheet" href="style.css?v=4" />
+  <link rel="stylesheet" href="style.css?v=5" />
 </head>
 <body>
   <!-- ============ GLAVA ============ -->
@@ -13,6 +13,7 @@
       <div class="brand">
         <span class="brand-mark">✓</span>
         <h1 class="brand-title">Checkliste</h1>
+        <select id="checklistSelect" class="cl-select" aria-label="Izberi checklisto"></select>
       </div>
 
       <!-- Sprožilci zložljivih menijev (vidni samo na telefonu) -->
@@ -21,16 +22,14 @@
         <button id="toggleToolsMenu" class="menu-trigger" aria-expanded="false">⚙️ Orodja ▾</button>
       </div>
 
-      <!-- PANEL 1: urejanje / izbira checkliste -->
+      <!-- PANEL 1: akcije za checklisto -->
       <div class="panel panel-checklist" id="panelChecklist">
-        <div class="checklist-picker">
-          <select id="checklistSelect" class="cl-select" aria-label="Izberi checklisto"></select>
-          <div class="picker-actions">
-            <button id="btnNewChecklist" class="icon-btn" title="Nova checklista">＋</button>
-            <button id="btnRenameChecklist" class="icon-btn" title="Preimenuj">✏️</button>
-            <button id="btnDuplicateChecklist" class="icon-btn" title="Podvoji">⧉</button>
-            <button id="btnDeleteChecklist" class="icon-btn danger" title="Izbriši checklisto">🗑️</button>
-          </div>
+        <div class="picker-actions">
+          <button id="btnNewChecklist" class="tool-btn" title="Nova checklista">＋ Checklist</button>
+          <button id="btnAddCategory" class="tool-btn" title="Nova kategorija">＋ Kategorija</button>
+          <button id="btnRenameChecklist" class="icon-btn" title="Preimenuj">✏️</button>
+          <button id="btnDuplicateChecklist" class="icon-btn" title="Podvoji">⧉</button>
+          <button id="btnDeleteChecklist" class="icon-btn danger" title="Izbriši checklisto">🗑️</button>
         </div>
       </div>
 
@@ -42,7 +41,6 @@
         <div class="toolbar">
           <button id="btnCheckAll" class="tool-btn">✓ Označi vse</button>
           <button id="btnClearAll" class="tool-btn">↺ Počisti vse</button>
-          <button id="btnAddCategory" class="tool-btn">＋ Kategorija</button>
           <button id="btnExportActive" class="tool-btn">📤 Izvozi aktivno</button>
           <button id="btnExportAll" class="tool-btn">📤 Izvozi vse</button>
           <button id="btnImport" class="tool-btn">📥 Uvozi</button>
@@ -140,6 +138,6 @@
 
   <!-- Tesseract.js za OCR (naloži se s CDN, potrebuje internet ob prvem zajemu) -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <script src="script.js?v=4"></script>
+  <script src="script.js?v=5"></script>
 </body>
 </html>
