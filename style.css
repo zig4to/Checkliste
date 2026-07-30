@@ -475,8 +475,8 @@ body {
   .topbar-inner { padding: 10px 12px 6px; gap: 0; }
   .brand { margin-bottom: 8px; }
 
-  /* Namesto naslova "Checkliste" pokazi izbirnik checkliste na vrhu */
-  .brand-title { display: none; }
+  /* Naslov ostane viden, izbirnik checkliste pa zapolni preostanek vrstice */
+  .brand-title { font-size: 17px; white-space: nowrap; }
   .brand .cl-select { flex: 1 1 auto; min-width: 0; }
 
   /* PokaĹľi sproĹľilce menijev */
