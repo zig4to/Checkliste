@@ -214,6 +214,7 @@ body {
 .tool-btn:active { transform: scale(.97); }
 .tool-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
 .tool-btn.primary:hover { background: var(--accent-strong); }
+.tool-btn.danger:hover { background: color-mix(in srgb, var(--danger) 14%, var(--card)); border-color: var(--danger); }
 
 /* ============ VSEBINA ============ */
 .content {
