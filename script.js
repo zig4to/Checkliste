@@ -904,6 +904,11 @@ function bindCategoryList() {
    ZAGON
    ================================================================ */
 
+/** Ob nalaganju strani naj bodo vse kategorije vseh checklist zložene. */
+function collapseAllCategories() {
+  store.checklists.forEach((cl) => cl.categories.forEach((cat) => { cat.collapsed = true; }));
+}
+
 function init() {
   // Varovalo: modala naj bosta ob zagonu vedno skrita.
   if (modal.overlay) {
@@ -914,6 +919,7 @@ function init() {
   initTheme();
   bindTopbar();
   bindCategoryList();
+  collapseAllCategories();
   renderAll({ persist: true }); // shrani začetno stanje ob prvem zagonu
 }
 

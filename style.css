@@ -469,10 +469,10 @@ body {
 
 @media (max-width: 719px) {
   body { font-size: 15px; }
-  .content { padding: 14px 12px; }
+  .content { padding: 8px 12px 14px; }
   /* Uporabi robove namesto gap-a: zaprt panel ima 0 roba, torej ne pusti
      praznega prostora (gap bi ga sicer vseeno dodal ob obeh straneh). */
-  .topbar-inner { padding: 10px 12px 12px; gap: 0; }
+  .topbar-inner { padding: 10px 12px 6px; gap: 0; }
   .brand { margin-bottom: 8px; }
 
   /* Namesto naslova "Checkliste" pokazi izbirnik checkliste na vrhu */
