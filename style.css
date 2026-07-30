@@ -248,6 +248,7 @@ body {
   align-items: center;
   gap: 10px;
   padding: 12px 14px;
+  cursor: pointer;
 }
 
 .cat-toggle {
@@ -533,5 +534,14 @@ body {
   .category.collapsed .cat-progress,
   .category.collapsed .cat-actions {
     display: none;
+  }
+
+  /* Zaprta kategorija: naslov na sredini vrstice */
+  .category.collapsed .cat-head {
+    justify-content: center;
+  }
+  .category.collapsed .cat-name {
+    flex: 0 1 auto;
+    text-align: center;
   }
 }

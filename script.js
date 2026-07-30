@@ -867,6 +867,11 @@ function bindCategoryList() {
     const itemNode = e.target.closest(".item");
     const itemId = itemNode ? itemNode.dataset.itemId : null;
 
+    // Klik kamorkoli na glavo kategorije (razen na gumb) jo odpre/zapre.
+    if (!btn && e.target.closest(".cat-head")) {
+      return toggleCollapse(catId, catNode);
+    }
+
     if (!btn) return;
 
     // Akcije kategorije
