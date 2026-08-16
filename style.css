@@ -476,7 +476,7 @@ body {
   .brand { margin-bottom: 8px; }
 
   /* Naslov ostane viden, izbirnik checkliste pa zapolni preostanek vrstice */
-  .brand-title { font-size: 17px; white-space: nowrap; }
+  .brand-title { font-size: 17px; white-space: nowrap; min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; }
   .brand .cl-select { flex: 1 1 auto; min-width: 0; }
 
   /* PokaĹľi sproĹľilce menijev */
