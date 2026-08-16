@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Nam Puzabu</title>
-  <link rel="stylesheet" href="style.css?v=9" />
+  <link rel="stylesheet" href="style.css?v=11" />
 </head>
 <body>
   <!-- ============ GLAVA ============ -->
@@ -16,36 +16,39 @@
         <select id="checklistSelect" class="cl-select" aria-label="Izberi checklisto"></select>
       </div>
 
-      <!-- Sprožilci zložljivih menijev (vidni samo na telefonu) -->
-      <div class="menu-triggers">
-        <button id="toggleChecklistMenu" class="menu-trigger" aria-expanded="false">📋 Checkliste ▾</button>
-        <button id="toggleToolsMenu" class="menu-trigger" aria-expanded="false">⚙️ Orodja ▾</button>
-      </div>
-
-      <!-- PANEL 1: akcije za checklisto -->
-      <div class="panel panel-checklist" id="panelChecklist">
-        <div class="picker-actions">
-          <button id="btnNewChecklist" class="tool-btn" title="Nova checklista">＋ Checklist</button>
-          <button id="btnAddCategory" class="tool-btn" title="Nova kategorija">＋ Kategorija</button>
-          <button id="btnRenameChecklist" class="tool-btn" title="Preimenuj">✏️ Preimenuj</button>
-          <button id="btnDuplicateChecklist" class="tool-btn" title="Podvoji">⧉ Kopiraj</button>
-          <button id="btnDeleteChecklist" class="tool-btn danger" title="Izbriši checklisto">🗑️ Izbriši</button>
+      <!-- Sprožilci zložljivih menijev + njuna panela (na telefonu se panela
+           razprejo navzdol, na namizju se odpreta kot spustna seznama) -->
+      <div class="menu-zone">
+        <div class="menu-triggers">
+          <button id="toggleChecklistMenu" class="menu-trigger" aria-expanded="false">📋 Checkliste ▾</button>
+          <button id="toggleToolsMenu" class="menu-trigger" aria-expanded="false">⚙️ Orodja ▾</button>
         </div>
-      </div>
 
-      <!-- PANEL 2: iskalnik + orodja -->
-      <div class="panel panel-tools" id="panelTools">
-        <div class="search-wrap">
-          <input id="searchInput" class="search-input" type="search" placeholder="Poišči element..." aria-label="Iskanje" />
+        <!-- PANEL 1: akcije za checklisto -->
+        <div class="panel panel-checklist" id="panelChecklist">
+          <div class="picker-actions">
+            <button id="btnNewChecklist" class="tool-btn" title="Nova checklista">＋ Checklist</button>
+            <button id="btnAddCategory" class="tool-btn" title="Nova kategorija">＋ Kategorija</button>
+            <button id="btnRenameChecklist" class="tool-btn" title="Preimenuj">✏️ Preimenuj</button>
+            <button id="btnDuplicateChecklist" class="tool-btn" title="Podvoji">⧉ Kopiraj</button>
+            <button id="btnDeleteChecklist" class="tool-btn danger" title="Izbriši checklisto">🗑️ Izbriši</button>
+          </div>
         </div>
-        <div class="toolbar">
-          <button id="btnCheckAll" class="tool-btn">✓ Označi vse</button>
-          <button id="btnClearAll" class="tool-btn">↺ Počisti vse</button>
-          <button id="btnExportActive" class="tool-btn">📤 Izvozi aktivno</button>
-          <button id="btnExportAll" class="tool-btn">📤 Izvozi vse</button>
-          <button id="btnImport" class="tool-btn">📥 Uvozi</button>
-          <button id="btnScan" class="tool-btn">📷 Skeniraj sliko</button>
-          <button id="btnTheme" class="tool-btn">🌙 Tema</button>
+
+        <!-- PANEL 2: iskalnik + orodja -->
+        <div class="panel panel-tools" id="panelTools">
+          <div class="search-wrap">
+            <input id="searchInput" class="search-input" type="search" placeholder="Poišči element..." aria-label="Iskanje" />
+          </div>
+          <div class="toolbar">
+            <button id="btnCheckAll" class="tool-btn">✓ Označi vse</button>
+            <button id="btnClearAll" class="tool-btn">↺ Počisti vse</button>
+            <button id="btnExportActive" class="tool-btn">📤 Izvozi aktivno</button>
+            <button id="btnExportAll" class="tool-btn">📤 Izvozi vse</button>
+            <button id="btnImport" class="tool-btn">📥 Uvozi</button>
+            <button id="btnScan" class="tool-btn">📷 Skeniraj sliko</button>
+            <button id="btnTheme" class="tool-btn">🌙 Tema</button>
+          </div>
         </div>
       </div>
 
@@ -138,6 +141,6 @@
 
   <!-- Tesseract.js za OCR (naloži se s CDN, potrebuje internet ob prvem zajemu) -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <script src="script.js?v=9"></script>
+  <script src="script.js?v=11"></script>
 </body>
 </html>

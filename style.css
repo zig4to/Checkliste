@@ -123,6 +123,7 @@ body {
 .cl-select {
   flex: 1 1 160px;
   min-width: 140px;
+  margin-left: 6px;
   padding: 9px 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
@@ -446,25 +447,53 @@ body {
 /* Ĺ irĹˇi zasloni (laptop / namizje): kompaktna glava v manj vrsticah,
    da checklisti ostane veÄŤ navpiÄŤnega prostora. */
 @media (min-width: 720px) {
-  /* Prva vrstica: znamka + izbirnik checkliste + napredek.
-     Druga vrstica: iskalnik levo, orodna vrstica desno. */
+  /* Ena vrstica: znamka + izbirnik checkliste, napredek, sprozilca menijev.
+     Akcije checkliste in orodja se skrijejo v spustna menija. */
   .topbar-inner {
-    display: grid;
-    grid-template-columns: minmax(260px, 340px) 1fr minmax(200px, 260px);
-    grid-template-areas:
-      "brand picker progress"
-      "search toolbar toolbar";
+    position: relative;
+    display: flex;
     align-items: center;
-    gap: 10px 16px;
+    gap: 16px;
   }
-  .brand         { grid-area: brand; }
-  .picker-actions { grid-area: picker; flex-wrap: nowrap; }
-  .progress-wrap { grid-area: progress; }
-  .search-wrap   { grid-area: search; }
-  .toolbar       { grid-area: toolbar; justify-content: flex-end; }
+  .brand         { flex: 0 1 auto; min-width: 0; }
+  .progress-wrap { flex: 1 1 240px; max-width: 340px; }
+  /* Sprozilca menijev sta vidna tudi na namizju, centrirana v preostalem prostoru */
+  .menu-zone     { position: relative; flex: 0 0 auto; margin: 0 auto; }
+  .menu-triggers { display: flex; gap: 8px; }
+  .menu-trigger  { flex: 0 0 auto; padding: 11px 22px; }
 
   .brand-title   { white-space: nowrap; }
   .progress-meta { margin-bottom: 4px; }
+
+  /* Panela postaneta spustna menija, sidrana pod sprozilca na desni */
+  .panel {
+    display: block;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    width: 340px;
+    max-width: calc(100vw - 32px);
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 12px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px);
+    transition: opacity .18s ease, transform .18s ease, visibility .18s;
+    z-index: 30;
+  }
+  .panel.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+  .panel .picker-actions,
+  .panel .toolbar { flex-wrap: wrap; }
+  .panel .search-wrap { margin-bottom: 8px; }
+  .panel .toolbar .tool-btn { flex: 1 1 auto; }
 }
 
 @media (max-width: 719px) {

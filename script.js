@@ -34,64 +34,58 @@ const clone = (obj) => JSON.parse(JSON.stringify(obj));
 
 const SEED_CHECKLISTS = [
   {
+    name: "🏂 Splitboarding Checklist",
+    categories: [
+      { name: "🪖 Oprema", items: ["Bord/smuče", "Vezi", "Buci/pancarji", "Plazovni trojček", "Palice", "Kože", "Čelada", "Očala", "Srenači", "Nahrbtnik", "Komplet orodja", "Čelna svetilka", "Prva pomoč"] },
+      { name: "👕 Oblačila", items: ["Baselayer", "Švic majica", "Flis", "Švic hlače", "Preobleči švic majico", "Štumfi", "Buff"] },
+      { name: "🌭 Hrana/pijača", items: ["Meh z vodo", "Sendvič", "Proteinske ploščice", "Energijski gel", "Energijski napitek"] },
+      { name: "🧥Hardshell", items: ["Jakna/puhovka", "Zimske hlače", "Rokavice debele", "Rokavice tanke", "Kapa", "Sončna očala"] },
+      { name: "👜 Za preoblečt v avtu", items: ["Štumfi", "Majica"] }
+    ]
+  },
+  {
+    name: "🌊 SUP Checklist",
+    categories: [
+      { name: "🏞️ Osnovno", items: ["SUP", "Baterijska pumpa", "Vodna vreča"] },
+      { name: "👕 Oblačila", items: ["Rezervna majica", "Papuči"] },
+      { name: "☀️ Zaščita", items: ["Sončna krema", "Vodni čevlji", "Sončna očala"] },
+      { name: "Hrana in pijača", items: [] }
+    ]
+  },
+  {
     name: "🚐 Car Camping Checklist",
     categories: [
-      { name: "🏕️ Kamp oprema", items: ["Mizica", "Stoli", "Dodatna lesena mizica za razširitev", "Kovtri", "Piknik deka", "Viseča mreža", "Pokrivala za okna", "Toaleta", "Nahrbtnik", "Sleep mask", "Čepki za ušesa"] },
+      { name: "🏕️ Kamp oprema", items: ["Mizica", "Stoli", "Dodatna lesena mizica za razširitev", "Deka", "Piknik deka", "Viseča mreža", "Pokrivala za okna", "Toaleta", "Gajbice", "Nahrbtnik", "Nahrbtniki", "Sleep mask", "Čepki za ušesa"] },
       { name: "🍳 Kuhinja", items: ["Plinski gorilnik", "Bomba + cev", "Ključ za bombo", "Posoda za kuhanje", "Dober nož", "Deska za rezanje", "Pribor", "Šalce", "Kozarčki", "Krožniki", "Džezva", "Kava", "Juha", "Rezervoar z vodo", "Meh za vodo", "Hladilna skrinja + pingvini", "Tupperware", "Gobica (za posodo)", "Cet (za posodo)"] },
       { name: "🧼 Higiena", items: ["Brisače kopanje", "Brisače umivanje", "Gel za tuširanje", "Razkužilo za roke", "WC papir", "Kuhinjski papir", "Servieti", "Sončna krema", "Sprej proti komarjem", "Rezervne leče"] },
       { name: "🔌 Tehnika", items: ["Powerbanki", "USB kabli (USB/C)", "USB razdelilci", "Rezervne baterije", "Namizna lučka", "Čelka", "Slušalke", "Mašince"] },
+      { name: "🥾 Aktivnosti", items: ["Igre", "Pohodne palice", "Odbojkarska žoga", "Balinčki"] },
       { name: "🩹 Orodje in popravila", items: ["Komplet orodja", "Plastične vrečke", "Alu folija", "Vaservaga", "Deske za uravnavanje vozila", "Štrik + klinčki", "Vezice", "Silver tape"] },
       { name: "👕 Oblačila", items: ["Jakna", "Jopa / dolgi rokavi", "Papuči", "Kopalke", "Sončna očala", "Rezervne vezalke"] },
-      { name: "🥾 Aktivnosti", items: ["Igre", "Pohodne palice", "Odbojkarska žoga", "Balinčki"] },
       { name: "🛏️ Spanje", items: ["Jogi / nadvložek", "Rjuha", "Povšter", "Kovter", "Dodatna deka"] },
       { name: "🩺 Prva pomoč", items: ["Flajštri", "Nalgesin"] }
     ]
   },
   {
-    name: "Splitboarding Checklist",
+    name: "🐟 Morje Checklist",
     categories: [
-      { name: "Oprema", items: ["Bord/smuče", "Vezi", "Buci/pancarji", "Plazovni trojček", "Palice", "Kože", "Čelada", "Očala", "Srenači", "Nahrbtnik", "Komplet orodja", "Čelna svetilka", "Prva pomoč"] },
-      { name: "Oblačila", items: ["Baselayer", "Švic majica", "Švic hlače", "Preobleči švic majico", "Flis", "Štumfi", "Buff"] },
-      { name: "Hardshell", items: ["Jakna/puhovka", "Zimske hlače", "Rokavice debele", "Rokavice tanke", "Kapa", "Sončna očala"] },
-      { name: "Hrana/pijača", items: ["Meh z vodo", "Sendvič", "Proteinske ploščice", "Energijski gel", "Energijski napitek"] },
-      { name: "Za preoblečt v avtu", items: ["Štumfi", "Majica"] }
+      { name: "⚽ Rekviziti", items: ["Kitara", "Kruzer?", "Čoln", "Zogca za vodo", "Prisrčnca", "Beer pong kozarci", "Balinčki", "Zoga za odbojko"] },
+      { name: "⚡ Elektronika", items: ["Zvočnik", "Kabel za zvočnik", "Mešalka / laptop?", "Audio kabel za kitaro", "Podaljšek / Razdelilec", "Mic / brezžicn", "Kšne lučke", "Projektor"] },
+      { name: "🏃 To do", items: ["Spucaj čevlje"] },
+      { name: "👕 Oblačila", items: ["Japanke", "Klobuk"] },
+      { name: "🫙 Ostalo", items: ["Nalgesin", "Vitamin C", "Brivnik", "Rezerve leče"] }
     ]
   },
   {
-    name: "Bikepacking Trip",
+    name: "🏕️ Multiday Hiking",
     categories: [
-      { name: "Kolo in oprema", items: ["Kolo", "Čelada", "Kolesarski čevlji", "Pedala", "Kolesarske rokavice", "Sončna očala", "Prednja luč", "Zadnja luč", "GPS / kolesarski računalnik", "Nosilci / torbe", "Bidoni", "Ključavnica"] },
-      { name: "Servis in rezervni deli", items: ["Mini tlačilka", "Rezervna zračnica", "Tubeless čepi", "CO₂ kartuša", "Multitool", "Rezervna verižna spojka", "Orodje za verigo", "Rezervne zavorne ploščice", "Mazivo za verigo", "Vezice", "Duct tape"] },
-      { name: "Spanje", items: ["Šotor", "Spalna vreča", "Napihljiva blazina", "Vzglavnik", "Repair kit za blazino"] },
-      { name: "Oblačila", items: ["Kolesarski dres", "Kolesarske hlače", "Rezervni dres", "Majica", "Flis", "Puhovka", "Dežna jakna", "Nogavice", "Rezervne nogavice", "Perilo", "Buff", "Kapa"] },
-      { name: "Kuhinja in hrana", items: ["Plinski gorilnik", "Plinska kartuša", "Posoda", "Žlica", "Skodelica", "Filter za vodo", "Liofilizirani obroki", "Proteinske ploščice", "Energijski geli", "Elektroliti", "Kava / čaj"] },
-      { name: "Elektronika", items: ["Telefon", "Powerbank", "Polnilni kabli", "Polnilec", "Čelna svetilka"] },
-      { name: "Higiena in varnost", items: ["Prva pomoč", "Osebna zdravila", "Zobna ščetka", "Zobna pasta", "Brisača iz mikrovlaken", "Toaletni papir", "Mokri robčki", "Razkužilo za roke", "Krema za sončenje", "Sprej proti komarjem"] },
-      { name: "Dokumenti", items: ["Osebni dokument", "Denarnica", "Bančna kartica", "Gotovina", "Zdravstvena kartica", "Ključi"] }
-    ]
-  },
-  {
-    name: "Multiday Backpacking Trip",
-    categories: [
-      { name: "Nahrbtnik in oprema", items: ["Pohodni nahrbtnik", "Dežna prevleka za nahrbtnik", "Pohodne palice", "Čelna svetilka", "Rezervne baterije", "Nož / multitool", "Vžigalnik", "Vrvica (Paracord)", "Lepilni trak (Duct Tape)", "Powerbank", "Polnilni kabli", "Telefon", "Ura / GPS"] },
-      { name: "Spanje", items: ["Šotor", "Količki", "Napenjalne vrvice", "Podloga za šotor", "Spalna vreča", "Napihljiva blazina", "Vzglavnik", "Repair kit za blazino"] },
-      { name: "Oblačila", items: ["Pohodni čevlji", "Sandali / natikači", "Baselayer", "Pohodne hlače", "Kratke hlače", "Majica", "Rezervna majica", "Flis", "Puhovka", "Dežna jakna", "Dežne hlače", "Perilo", "Rezervno perilo", "Pohodniške nogavice", "Rezervne nogavice", "Kapa", "Buff", "Rokavice"] },
-      { name: "Kuhinja", items: ["Plinski gorilnik", "Plinska kartuša", "Posoda", "Skodelica", "Žlica", "Nož", "Gobica", "Biološko razgradljiv detergent", "Vžigalnik"] },
-      { name: "Hrana in voda", items: ["Steklenica za vodo", "Meh za vodo", "Filter za vodo", "Tablete za čiščenje vode", "Liofilizirani obroki", "Ovseni kosmiči", "Kava / čaj", "Proteinske ploščice", "Oreščki", "Suho sadje", "Elektroliti"] },
-      { name: "Higiena", items: ["Zobna ščetka", "Zobna pasta", "Toaletni papir", "Mokri robčki", "Brisača iz mikrovlaken", "Milo", "Razkužilo za roke", "Krema za sončenje", "Balzam za ustnice", "Sprej proti komarjem"] },
-      { name: "Varnost", items: ["Prva pomoč", "Osebna zdravila", "Elastični povoj", "Obliži", "Protibolečinske tablete", "Reševalna folija", "Piščalka", "Papirni zemljevid", "Kompas"] },
-      { name: "Dokumenti", items: ["Osebni dokument", "Denarnica", "Gotovina", "Bančna kartica", "Zdravstvena kartica", "Rezervacije", "Ključi"] }
-    ]
-  },
-  {
-    name: "Piknik na travniku",
-    categories: [
-      { name: "Oprema", items: ["Piknik odeja", "Zložljiva stola", "Miza (po potrebi)", "Senčnik", "Hladilna torba", "Ledeni vložki", "Vreče za smeti", "Papirnate brisače"] },
-      { name: "Hrana", items: ["Sendviči", "Sadje", "Prigrizki", "Sir", "Suhomesnati izdelki", "Sladica"] },
-      { name: "Pijača", items: ["Voda", "Sok", "Gazirana pijača", "Termovka s kavo/čajem"] },
-      { name: "Jedilni pribor", items: ["Krožniki", "Kozarci", "Vilice", "Žlice", "Nož", "Deska za rezanje", "Odpirač"] },
-      { name: "Udobje in zabava", items: ["Bluetooth zvočnik", "Knjiga", "Družabna igra", "Frizbi", "Žoga", "Karte"] },
-      { name: "Higiena in varnost", items: ["Razkužilo za roke", "Mokri robčki", "Krema za sončenje", "Sprej proti komarjem", "Prva pomoč"] }
+      { name: "🥾 Pohodniška oprema", items: ["Gojzarji", "Pohodne palice", "Puhovka", "Jakna", "Nahrbtnik"] },
+      { name: "🍔 Hrana", items: ["Njoki", "Sendviči", "Salama", "Voda", "Energijski gel", "Proteinske"] },
+      { name: "👚 Oblačila", items: ["Flis", "Nogavice rezervne", "Dolge hlače", "Gate", "Majica za preoblečt", "Kapa", "Maska za spanje"] },
+      { name: "🛌 Za spat", items: ["Blazina", "Podloga", "Spalka", "Povšter", "Tablete za spanje"] },
+      { name: "🍽️ Kuhinja", items: ["Gorilnik + bomba", "Ponev / posoda", "🔪 Nož", "Pribor", "Šalca"] },
+      { name: "🪥 Higiena", items: ["Za leče", "Zobna ščetka", "Vlažilni robčki / Robci"] },
+      { name: "⚙️ Ostalo", items: ["Čelna svetilka", "Sončna očala", "Papuči", "Garmin ura", "Powerbank", "Meh za vodo", "Vrečka za smeti"] }
     ]
   }
 ];
@@ -846,12 +840,31 @@ function bindTopbar() {
     otherTrig.setAttribute("aria-expanded", "false");
   }
 
-  trigChecklist.addEventListener("click", () =>
-    togglePanel(panelChecklist, trigChecklist, panelTools, trigTools)
-  );
-  trigTools.addEventListener("click", () =>
-    togglePanel(panelTools, trigTools, panelChecklist, trigChecklist)
-  );
+  function closeAllPanels() {
+    panelChecklist.classList.remove("open");
+    panelTools.classList.remove("open");
+    trigChecklist.setAttribute("aria-expanded", "false");
+    trigTools.setAttribute("aria-expanded", "false");
+  }
+
+  trigChecklist.addEventListener("click", (e) => {
+    e.stopPropagation();
+    togglePanel(panelChecklist, trigChecklist, panelTools, trigTools);
+  });
+  trigTools.addEventListener("click", (e) => {
+    e.stopPropagation();
+    togglePanel(panelTools, trigTools, panelChecklist, trigChecklist);
+  });
+
+  // Na namizju se menija odpreta kot spustna seznama: zapri ju ob kliku
+  // zunaj njiju ali ob tipki Escape.
+  document.addEventListener("click", (e) => {
+    if (panelChecklist.contains(e.target) || panelTools.contains(e.target)) return;
+    closeAllPanels();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeAllPanels();
+  });
 }
 
 /**
