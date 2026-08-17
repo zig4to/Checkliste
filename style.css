@@ -124,7 +124,7 @@ body {
   flex: 1 1 160px;
   min-width: 140px;
   margin-left: 6px;
-  padding: 9px 12px;
+  padding: 11px 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--card);
@@ -452,13 +452,14 @@ body {
   .topbar-inner {
     position: relative;
     display: flex;
+    flex-direction: row;
     align-items: center;
     gap: 16px;
   }
   .brand         { flex: 0 1 auto; min-width: 0; }
   .progress-wrap { flex: 1 1 240px; max-width: 340px; }
-  /* Sprozilca menijev sta vidna tudi na namizju, centrirana v preostalem prostoru */
-  .menu-zone     { position: relative; flex: 0 0 auto; margin: 0 auto; }
+  /* Sprozilca menijev sta vidna tudi na namizju, tik ob izbirniku checkliste (levo) */
+  .menu-zone     { position: relative; flex: 0 0 auto; }
   .menu-triggers { display: flex; gap: 8px; }
   .menu-trigger  { flex: 0 0 auto; padding: 11px 22px; }
 
