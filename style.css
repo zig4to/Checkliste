@@ -94,6 +94,9 @@ body {
   font-size: 20px;
   font-weight: 700;
   letter-spacing: -.01em;
+  /* Naslov je vedno viden v celoti: ne lomi se in se ne skrci. */
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 /* SproĹľilci zloĹľljivih menijev: skriti na desktopu, vidni na telefonu */
@@ -463,7 +466,6 @@ body {
   .menu-triggers { display: flex; gap: 8px; }
   .menu-trigger  { flex: 0 0 auto; padding: 11px 22px; }
 
-  .brand-title   { white-space: nowrap; }
   .progress-meta { margin-bottom: 4px; }
 
   /* Panela postaneta spustna menija, sidrana pod sprozilca na desni */
@@ -506,7 +508,7 @@ body {
   .brand { margin-bottom: 8px; }
 
   /* Naslov ostane viden, izbirnik checkliste pa zapolni preostanek vrstice */
-  .brand-title { font-size: 17px; white-space: nowrap; min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; }
+  .brand-title { font-size: 17px; }
   .brand .cl-select { flex: 1 1 auto; min-width: 0; }
 
   /* PokaĹľi sproĹľilce menijev */
