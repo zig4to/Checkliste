@@ -46,8 +46,8 @@ const SEED_CHECKLISTS = [
   {
     name: "🌊 SUP Checklist",
     categories: [
-      { name: "🏞️ Osnovno", items: ["SUP", "Baterijska pumpa", "Vodna vreča"] },
-      { name: "👕 Oblačila", items: ["Rezervna majica", "Papuči"] },
+      { name: "🏞️ Osnovno", items: ["SUP", "Baterijski kompresor", "Vodna vreča", "Nastavlki za sup", "Brusača", "Vesla", "Gajba za pir"] },
+      { name: "👕 Oblačila", items: ["Kopalke", "Rezervna majica", "Papuči", "Hlače za preoblečt", "Gate"] },
       { name: "☀️ Zaščita", items: ["Sončna krema", "Vodni čevlji", "Sončna očala"] },
       { name: "Hrana in pijača", items: [] }
     ]
@@ -69,9 +69,9 @@ const SEED_CHECKLISTS = [
   {
     name: "🐟 Morje Checklist",
     categories: [
-      { name: "⚽ Rekviziti", items: ["Kitara", "Kruzer?", "Čoln", "Zogca za vodo", "Prisrčnca", "Beer pong kozarci", "Balinčki", "Zoga za odbojko"] },
-      { name: "⚡ Elektronika", items: ["Zvočnik", "Kabel za zvočnik", "Mešalka / laptop?", "Audio kabel za kitaro", "Podaljšek / Razdelilec", "Mic / brezžicn", "Kšne lučke", "Projektor"] },
-      { name: "🏃 To do", items: ["Spucaj čevlje"] },
+      { name: "⚽ Rekviziti", items: ["Kitara", "Kruzer?", "Zogca za vodo", "Prisrčnca", "Beer pong kozarci", "Balinčki", "Zoga za odbojko"] },
+      { name: "⚡ Elektronika", items: ["Zvočnik"] },
+      { name: "🏃 To do", items: [] },
       { name: "👕 Oblačila", items: ["Japanke", "Klobuk"] },
       { name: "🫙 Ostalo", items: ["Nalgesin", "Vitamin C", "Brivnik", "Rezerve leče"] }
     ]
@@ -86,6 +86,24 @@ const SEED_CHECKLISTS = [
       { name: "🍽️ Kuhinja", items: ["Gorilnik + bomba", "Ponev / posoda", "🔪 Nož", "Pribor", "Šalca"] },
       { name: "🪥 Higiena", items: ["Za leče", "Zobna ščetka", "Vlažilni robčki / Robci"] },
       { name: "⚙️ Ostalo", items: ["Čelna svetilka", "Sončna očala", "Papuči", "Garmin ura", "Powerbank", "Meh za vodo", "Vrečka za smeti"] }
+    ]
+  },
+  {
+    name: "🧗‍♂️Ferata Checklist",
+    categories: [
+      { name: "Oprema", items: ["Gojzarji", "Samovarovalni komplet", "Čelada", "Plezalni pas", "Rokavice za ferato"] },
+      { name: "Hrana", items: ["Voda", "Proteinske ploščice"] },
+      { name: "Obleke", items: ["Rezervna majica", "Flis če je mrzlo"] },
+      { name: "Ostalo", items: ["Sončna očala", "Krema za sonce", "Prva pomoč"] }
+    ]
+  },
+  {
+    name: "🏔️ Hribi Checklista",
+    categories: [
+      { name: "🥾 Pohodniška oprema", items: ["Gojzarji", "Pohodne palice", "Puhovka", "Jakna", "Nahrbtnik"] },
+      { name: "🍔 Hrana", items: ["Sendviči", "Voda", "Energijski gel", "Proteinske"] },
+      { name: "👚 Oblačila", items: ["Flis", "Nogavice rezervne", "Dolge hlače", "Gate", "Majica za preoblečt", "Kapa"] },
+      { name: "⚙️ Ostalo", items: ["Čelna svetilka", "Sončna očala", "Garmin ura", "Powerbank", "Meh za vodo", "Nož"] }
     ]
   }
 ];
