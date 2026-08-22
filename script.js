@@ -34,6 +34,15 @@ const clone = (obj) => JSON.parse(JSON.stringify(obj));
 
 const SEED_CHECKLISTS = [
   {
+    name: "🏔️ Hribi Checklista",
+    categories: [
+      { name: "🥾 Pohodniška oprema", items: ["Gojzarji", "Pohodne palice", "Puhovka", "Jakna", "Nahrbtnik"] },
+      { name: "🍔 Hrana", items: ["Sendviči", "Voda", "Energijski gel", "Proteinske"] },
+      { name: "👚 Oblačila", items: ["Flis", "Nogavice rezervne", "Dolge hlače", "Gate", "Majica za preoblečt", "Kapa"] },
+      { name: "⚙️ Ostalo", items: ["Čelna svetilka", "Sončna očala", "Garmin ura", "Powerbank", "Meh za vodo", "Nož"] }
+    ]
+  },
+  {
     name: "🏂 Splitboarding Checklist",
     categories: [
       { name: "🪖 Oprema", items: ["Bord/smuče", "Vezi", "Buci/pancarji", "Plazovni trojček", "Palice", "Kože", "Čelada", "Očala", "Srenači", "Nahrbtnik", "Komplet orodja", "Čelna svetilka", "Prva pomoč"] },
@@ -96,15 +105,6 @@ const SEED_CHECKLISTS = [
       { name: "Obleke", items: ["Rezervna majica", "Flis če je mrzlo"] },
       { name: "Ostalo", items: ["Sončna očala", "Krema za sonce", "Prva pomoč"] }
     ]
-  },
-  {
-    name: "🏔️ Hribi Checklista",
-    categories: [
-      { name: "🥾 Pohodniška oprema", items: ["Gojzarji", "Pohodne palice", "Puhovka", "Jakna", "Nahrbtnik"] },
-      { name: "🍔 Hrana", items: ["Sendviči", "Voda", "Energijski gel", "Proteinske"] },
-      { name: "👚 Oblačila", items: ["Flis", "Nogavice rezervne", "Dolge hlače", "Gate", "Majica za preoblečt", "Kapa"] },
-      { name: "⚙️ Ostalo", items: ["Čelna svetilka", "Sončna očala", "Garmin ura", "Powerbank", "Meh za vodo", "Nož"] }
-    ]
   }
 ];
 
@@ -133,7 +133,11 @@ function loadStore() {
   if (raw) {
     try {
       const parsed = JSON.parse(raw);
-      if (parsed && Array.isArray(parsed.checklists)) return parsed;
+      if (parsed && Array.isArray(parsed.checklists) && parsed.checklists.length) {
+        // Ob vsakem zagonu je izbrana prva checklista na seznamu.
+        parsed.activeId = parsed.checklists[0].id;
+        return parsed;
+      }
     } catch (e) {
       console.warn("Napaka pri branju shrambe, ustvarjam novo.", e);
     }
