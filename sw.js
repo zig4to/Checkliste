@@ -6,7 +6,7 @@
 
 "use strict";
 
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v3";
 const SHELL_CACHE   = `checkliste-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `checkliste-runtime-${CACHE_VERSION}`;
 
