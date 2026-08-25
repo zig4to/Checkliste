@@ -646,15 +646,25 @@ function normalizeChecklist(cl) {
    TEMA
    ================================================================ */
 
+/** Barva sistemske vrstice v nameščeni aplikaciji (mora ustrezati temi). */
+const THEME_COLORS = { dark: "#14181a", light: "#f4f6f5" };
+
+function applyThemeColor(theme) {
+  const meta = document.getElementById("metaThemeColor");
+  if (meta) meta.setAttribute("content", THEME_COLORS[theme] || THEME_COLORS.dark);
+}
+
 function initTheme() {
   const saved = localStorage.getItem(THEME_KEY) || "dark";
   document.documentElement.setAttribute("data-theme", saved);
+  applyThemeColor(saved);
 }
 
 function toggleTheme() {
   const cur = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
   document.documentElement.setAttribute("data-theme", cur);
   localStorage.setItem(THEME_KEY, cur);
+  applyThemeColor(cur);
 }
 
 /* ================================================================
@@ -935,6 +945,97 @@ function bindCategoryList() {
   });
 }
 
+
+/* ================================================================
+   PWA - NAMESTITEV IN OFFLINE DELOVANJE
+   ================================================================ */
+
+/** Dogodek beforeinstallprompt shranimo, da lahko namestitev sprozimo sami. */
+let deferredInstallPrompt = null;
+
+/** Ali aplikacija ze tece kot nameščena (samostojno okno)? */
+const isStandalone = () =>
+  window.matchMedia("(display-mode: standalone)").matches ||
+  window.matchMedia("(display-mode: minimal-ui)").matches ||
+  window.navigator.standalone === true;
+
+function setupInstallPrompt() {
+  const btn = document.getElementById("btnInstall");
+  if (!btn) return;
+
+  // Chrome (Android/namizje) sporoci, da je aplikacijo mogoce namestiti.
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    if (!isStandalone()) btn.hidden = false;
+  });
+
+  btn.addEventListener("click", async () => {
+    // iOS/Safari nima beforeinstallprompt - pokazemo navodila.
+    if (!deferredInstallPrompt) {
+      alert([
+        "Namestitev na telefonu:",
+        "",
+        "Chrome (Android): meni ⋮ → Namesti aplikacijo / Dodaj na zacetni zaslon.",
+        "iPhone (Safari): Deli → Add to Home Screen."
+      ].join("\n"));
+      return;
+    }
+    btn.disabled = true;
+    deferredInstallPrompt.prompt();
+    try {
+      await deferredInstallPrompt.userChoice;
+    } finally {
+      deferredInstallPrompt = null;
+      btn.disabled = false;
+      btn.hidden = true;
+    }
+  });
+
+  // Po uspesni namestitvi gumb ni vec potreben.
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    btn.hidden = true;
+  });
+
+  // Ce tece ze nameščena, gumb ostane skrit.
+  if (isStandalone()) btn.hidden = true;
+}
+
+/** Registrira service worker za offline uporabo. */
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  // Service worker zahteva https ali localhost.
+  if (location.protocol !== "https:" && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") return;
+
+  window.addEventListener("load", async () => {
+    try {
+      const reg = await navigator.serviceWorker.register("sw.js");
+
+      // Ob novi razlicici jo prevzamemo in stran enkrat osvezimo.
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      });
+
+      reg.addEventListener("updatefound", () => {
+        const sw = reg.installing;
+        if (!sw) return;
+        sw.addEventListener("statechange", () => {
+          // Nova razlicica je pripravljena, stara pa se vedno tece.
+          if (sw.state === "installed" && navigator.serviceWorker.controller) {
+            sw.postMessage("SKIP_WAITING");
+          }
+        });
+      });
+    } catch (err) {
+      console.warn("[pwa] registracija service workerja ni uspela:", err);
+    }
+  });
+}
+
 /* ================================================================
    ZAGON
    ================================================================ */
@@ -956,6 +1057,8 @@ function init() {
   bindCategoryList();
   collapseAllCategories();
   renderAll({ persist: true }); // shrani začetno stanje ob prvem zagonu
+  setupInstallPrompt();
+  registerServiceWorker();
 }
 
 document.addEventListener("DOMContentLoaded", init);
