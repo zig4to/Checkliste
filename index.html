@@ -13,14 +13,19 @@
   <meta name="apple-mobile-web-app-title" content="Nam Puzabu" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="style.css?v=16" />
+  <link rel="stylesheet" href="style.css?v=17" />
 </head>
 <body>
   <!-- ============ GLAVA ============ -->
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand">
-        <span class="brand-mark">✓</span>
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 3.5h6A1.5 1.5 0 0 1 16.5 5v.5H18a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-12a2 2 0 0 1 2-2h1.5V5A1.5 1.5 0 0 1 9 3.5Z"/>
+            <path d="m8.5 12.5 2 2 4-4.5"/><path d="M8.5 18h7"/>
+          </svg>
+        </span>
         <h1 class="brand-title">Nam Puzabu</h1>
         <select id="checklistSelect" class="cl-select" aria-label="Izberi checklisto"></select>
       </div>
