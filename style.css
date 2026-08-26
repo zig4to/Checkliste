@@ -296,8 +296,8 @@ body {
 
 .card {
   background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--line));
+  border-radius: 22px;
   box-shadow: var(--shadow-sm);
 }
 
@@ -316,7 +316,7 @@ body {
   gap: 10px;
   padding: 12px 14px;
   cursor: pointer;
-  border-radius: var(--radius);
+  border-radius: 22px;
   transition: background .18s ease;
 }
 @media (hover: hover) {
@@ -338,7 +338,7 @@ body {
 /* Odprta kategorija: glava dobi tanko locilno crto do elementov. */
 .category:not(.collapsed) .cat-head {
   border-bottom: 1px solid var(--line-soft);
-  border-radius: var(--radius) var(--radius) 0 0;
+  border-radius: 22px 22px 0 0;
 }
 
 .cat-name {
