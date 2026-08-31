@@ -269,6 +269,7 @@ body {
   transition: background .15s ease, transform .12s ease, border-color .15s ease, box-shadow .15s ease;
 }
 .tool-btn:active { transform: scale(.97); }
+.tool-btn svg { width: 15px; height: 15px; vertical-align: -.16em; }
 .tool-btn.primary {
   background: linear-gradient(140deg, var(--accent), var(--accent-2));
   color: #fff;
@@ -383,8 +384,12 @@ body {
   border-radius: 9px;
   font-size: 14px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: background .15s ease, transform .1s ease, color .15s ease;
 }
+.mini-btn svg { width: 17px; height: 17px; display: block; }
 .mini-btn:active { transform: scale(.9); }
 @media (hover: hover) {
   .mini-btn:hover { background: var(--card-2); color: var(--text); }
