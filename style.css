@@ -186,28 +186,96 @@ body {
 /* Panela sta na desktopu vedno prikazana (kot navadna vsebina) */
 .panel { display: contents; }
 
-.cl-select {
+/* Izbirnik checkliste: lasten spustni meni v istem slogu kot Checkliste / Orodja */
+.cl-picker {
+  position: relative;
   width: 100%;
-  margin-left: 0;
-  padding: 10px 34px 10px 16px;
+}
+
+.cl-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 16px;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--card);
   color: var(--text);
   font-size: 15px;
   font-weight: 600;
+  letter-spacing: -.01em;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
-  /* Lastna puscica namesto sistemske (bolj umirjen videz). */
-  appearance: none;
-  -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%23888' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 11px;
   transition: border-color .18s ease, box-shadow .18s ease;
 }
-.cl-select:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.cl-trigger:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.cl-picker.open .cl-trigger {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  box-shadow: 0 6px 18px -10px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+.cl-trigger-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cl-trigger-caret {
+  width: 11px;
+  height: 8px;
+  flex-shrink: 0;
+  color: var(--text-soft);
+  transition: transform .2s ease;
+}
+.cl-picker.open .cl-trigger-caret { transform: rotate(180deg); }
+
+/* Meni: na telefonu se razpre navzdol (kot panela), na namizju kot spustni seznam */
+.cl-menu {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height .28s ease, opacity .2s ease, margin .2s ease;
+}
+.cl-picker.open .cl-menu {
+  max-height: 60vh;
+  opacity: 1;
+  margin-top: 8px;
+}
+.cl-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.cl-option {
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.cl-option:active { transform: none; }
+@media (hover: hover) {
+  .cl-option:hover { background: var(--card-2); border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+}
+.cl-option.active {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: color-mix(in srgb, var(--accent) 12%, var(--card));
+  color: var(--accent-strong);
+}
 
 .picker-actions {
   display: flex;
@@ -607,8 +675,31 @@ body {
   }
   .brand         { flex: 0 1 auto; min-width: 0; }
   /* Na namizju izbirnik ostane ob znamki, a ne razteza celotne vrstice. */
-  .cl-select     { width: auto; flex: 0 1 220px; min-width: 160px; }
+  .cl-picker     { width: auto; flex: 0 1 220px; min-width: 160px; }
   .progress-wrap { flex: 1 1 240px; max-width: 340px; }
+
+  /* Na namizju se meni checklist odpre kot spustni seznam (kot .panel). */
+  .cl-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    min-width: 240px;
+    max-width: min(360px, calc(100vw - 32px));
+    max-height: none;
+    overflow: visible;
+    margin: 0;
+    visibility: hidden;
+    transform: translateY(-6px) scale(.98);
+    transform-origin: top left;
+    transition: opacity .18s ease, transform .18s cubic-bezier(.2,.8,.3,1), visibility .18s;
+    z-index: 30;
+  }
+  .cl-picker.open .cl-menu {
+    max-height: none;
+    margin: 0;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+  }
   /* Uporabniski gumb gre na skrajno desno stran vrstice. */
   .user-btn      { order: 5; margin-left: auto; }
   /* Sprozilca menijev sta vidna tudi na namizju, tik ob izbirniku checkliste (levo) */
@@ -674,7 +765,7 @@ body {
 
   .brand-title { font-size: 17px; }
   /* Izbirnik checkliste je v svoji vrstici pod naslovom in cez celo sirino. */
-  .cl-select {
+  .cl-picker {
     width: 100%;
     margin-bottom: 10px;
   }

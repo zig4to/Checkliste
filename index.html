@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-title" content="Nam Puzabu" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="style.css?v=21" />
+  <link rel="stylesheet" href="style.css?v=22" />
 </head>
 <body>
   <!-- ============ PRIJAVA (zaslon pred aplikacijo) ============ -->
@@ -68,8 +68,19 @@
         <button id="btnSignOut" class="tool-btn danger" type="button">Odjava</button>
       </div>
 
-      <!-- Izbirnik checkliste v svoji vrstici pod naslovom -->
-      <select id="checklistSelect" class="cl-select" aria-label="Izberi checklisto"></select>
+      <!-- Izbirnik checkliste v svoji vrstici pod naslovom.
+           Lasten spustni meni (isti slog kot Checkliste / Orodja). -->
+      <div class="cl-picker" id="clPicker">
+        <button type="button" id="checklistTrigger" class="cl-trigger" aria-haspopup="true" aria-expanded="false" aria-label="Izberi checklisto">
+          <span class="cl-trigger-label" id="checklistLabel"></span>
+          <svg class="cl-trigger-caret" viewBox="0 0 12 8" aria-hidden="true">
+            <path d="M1 1.5 6 6.5 11 1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="cl-menu" id="checklistMenu">
+          <div class="cl-menu-list" id="checklistList" role="listbox" aria-label="Checkliste"></div>
+        </div>
+      </div>
 
       <!-- Sprožilci zložljivih menijev + njuna panela (na telefonu se panela
            razprejo navzdol, na namizju se odpreta kot spustna seznama) -->
@@ -200,6 +211,6 @@
   <!-- Supabase SDK (prijava + sinhronizacija checklist) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.js"></script>
   <script src="config.js?v=1"></script>
-  <script src="script.js?v=16"></script>
+  <script src="script.js?v=17"></script>
 </body>
 </html>

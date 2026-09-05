@@ -194,7 +194,10 @@ const getCat    = (cl, catId) => cl.categories.find((c) => c.id === catId);
 const $ = (sel) => document.querySelector(sel);
 
 const els = {
-  select:        $("#checklistSelect"),
+  clPicker:      $("#clPicker"),
+  clTrigger:     $("#checklistTrigger"),
+  clLabel:       $("#checklistLabel"),
+  clList:        $("#checklistList"),
   categoryList:  $("#categoryList"),
   search:        $("#searchInput"),
   progressWrap:  $(".progress-wrap"),
@@ -267,15 +270,21 @@ modal.input.addEventListener("keydown", (e) => {
    IZRIS (render)
    ================================================================ */
 
-/** Osveži spustni seznam checklist. */
+/** Osveži lasten spustni meni checklist (sprožilec + seznam možnosti). */
 function renderSelect() {
-  els.select.innerHTML = "";
+  const active = getActive();
+  els.clLabel.textContent = active ? active.name : "—";
+
+  els.clList.innerHTML = "";
   store.checklists.forEach((cl) => {
-    const opt = document.createElement("option");
-    opt.value = cl.id;
-    opt.textContent = cl.name;
-    if (cl.id === store.activeId) opt.selected = true;
-    els.select.appendChild(opt);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "cl-option" + (cl.id === store.activeId ? " active" : "");
+    btn.textContent = cl.name;
+    btn.dataset.id = cl.id;
+    btn.setAttribute("role", "option");
+    btn.setAttribute("aria-selected", cl.id === store.activeId ? "true" : "false");
+    els.clList.appendChild(btn);
   });
 }
 
@@ -845,9 +854,20 @@ function confirmScan() {
    ================================================================ */
 
 function bindTopbar() {
-  els.select.addEventListener("change", (e) => {
-    store.activeId = e.target.value;
+  // Izbirnik checkliste: lasten spustni meni (isti slog kot Checkliste / Orodja)
+  els.clTrigger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const willOpen = !els.clPicker.classList.contains("open");
+    els.clPicker.classList.toggle("open", willOpen);
+    els.clTrigger.setAttribute("aria-expanded", String(willOpen));
+    if (willOpen) closeAllPanels();
+  });
+  els.clList.addEventListener("click", (e) => {
+    const btn = e.target.closest(".cl-option");
+    if (!btn) return;
+    store.activeId = btn.dataset.id;
     els.search.value = "";
+    closeChecklistMenu();
     renderAll();
   });
 
@@ -915,6 +935,11 @@ function bindTopbar() {
   const trigChecklist = $("#toggleChecklistMenu");
   const trigTools = $("#toggleToolsMenu");
 
+  function closeChecklistMenu() {
+    els.clPicker.classList.remove("open");
+    els.clTrigger.setAttribute("aria-expanded", "false");
+  }
+
   function togglePanel(panel, trigger, other, otherTrig) {
     const willOpen = !panel.classList.contains("open");
     panel.classList.toggle("open", willOpen);
@@ -922,6 +947,8 @@ function bindTopbar() {
     // zapri drugega
     other.classList.remove("open");
     otherTrig.setAttribute("aria-expanded", "false");
+    // zapri tudi izbirnik checkliste
+    if (willOpen) closeChecklistMenu();
   }
 
   function closeAllPanels() {
@@ -941,13 +968,14 @@ function bindTopbar() {
   });
 
   // Na namizju se menija odpreta kot spustna seznama: zapri ju ob kliku
-  // zunaj njiju ali ob tipki Escape.
+  // zunaj njiju ali ob tipki Escape. Enako velja za izbirnik checkliste.
   document.addEventListener("click", (e) => {
+    if (!els.clPicker.contains(e.target)) closeChecklistMenu();
     if (panelChecklist.contains(e.target) || panelTools.contains(e.target)) return;
     closeAllPanels();
   });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeAllPanels();
+    if (e.key === "Escape") { closeAllPanels(); closeChecklistMenu(); }
   });
 }
 
