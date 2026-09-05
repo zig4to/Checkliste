@@ -124,14 +124,13 @@ body {
   font-size: 22px;
   font-weight: 800;
   letter-spacing: -.02em;
-  background: var(--title-grad);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  /* Naslov v topbaru je čisto bel (v svetli temi pa temno besedilo). */
+  color: #fff;
   /* Naslov je vedno viden v celoti: ne lomi se in se ne skrci. */
   white-space: nowrap;
   flex: 0 0 auto;
 }
+[data-theme="light"] .brand-title { color: var(--text); }
 
 /* Uporabniski gumb (racun) - okrogel, v slogu ostalih kontrol */
 .user-btn {
@@ -755,15 +754,26 @@ body {
   .topbar-inner { padding: 10px 12px 6px; gap: 0; }
   .brand { margin-bottom: 8px; }
 
-  /* Uporabniski gumb pripet cisto desno v vrstico z naslovom. */
+  /* Locilna crta ostane samo ena: tista pod gumboma Checkliste/Orodja
+     (zamaknjena od robov). Crta celotnega topbara se skrije. */
+  .topbar { border-bottom-color: transparent; }
+
+  /* Uporabniski gumb pripet cisto desno v vrstico z naslovom, poravnan
+     na isto sredino kot ikona ob naslovu (obe 32 px, isti zgornji rob). */
   .user-btn {
     position: absolute;
     top: 10px;
     right: 12px;
     z-index: 1;
+    width: 32px;
+    height: 32px;
   }
+  .user-btn svg { width: 17px; height: 17px; }
 
   .brand-title { font-size: 17px; }
+  /* Manjsa ikona ob naslovu na telefonu. */
+  .brand-mark { width: 32px; height: 32px; border-radius: 10px; }
+  .brand-mark svg { width: 17px; height: 17px; }
   /* Izbirnik checkliste je v svoji vrstici pod naslovom in cez celo sirino. */
   .cl-picker {
     width: 100%;
@@ -779,7 +789,8 @@ body {
     margin-bottom: 0;
     border-bottom: 1px solid var(--line);
   }
-  .menu-trigger { padding: 11px 12px; }
+  /* Ista visina kot izbirnik checkliste nad njima (.cl-trigger). */
+  .menu-trigger { padding: 10px 12px; font-weight: 600; }
 
   /* Panela postaneta zlozljiva: privzeto skrita */
   .panel {

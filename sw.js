@@ -6,7 +6,7 @@
 
 "use strict";
 
-const CACHE_VERSION = "v10";
+const CACHE_VERSION = "v15";
 const SHELL_CACHE   = `checkliste-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `checkliste-runtime-${CACHE_VERSION}`;
 
@@ -15,7 +15,7 @@ const RUNTIME_CACHE = `checkliste-runtime-${CACHE_VERSION}`;
 const SHELL_ASSETS = [
   "./",
   "./index.html",
-  "./style.css?v=22",
+  "./style.css?v=27",
   "./config.js?v=1",
   "./script.js?v=17",
   "./manifest.webmanifest",
