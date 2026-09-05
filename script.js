@@ -1082,6 +1082,153 @@ function setupInstallPrompt() {
   if (isStandalone()) btn.hidden = true;
 }
 
+/* ================================================================
+   PWA - PONUDBA NAMESTITVE PO PRIJAVI
+   Ob prijavi (prvih 5-krat) pokaze okno z gumbom za namestitev.
+   Ne kaze se, ce je (verjetno) ze namesceno ali ce ga je uporabnik zaprl.
+   Ponovno uporabi deferredInstallPrompt in isStandalone() od zgoraj.
+   ================================================================ */
+
+const IP_LS_COUNT = "install-promo-login-count";
+const IP_LS_DONE = "install-promo-done";
+const IP_LS_INSTALLED = "install-promo-installed";
+const IP_LS_IOS_OFF = "install-promo-ios-off";
+const IP_SS_COUNTED = "install-promo-counted";
+const IP_MAX = 5;
+
+let ipModal = null;
+let ipIosVariant = false;
+let ipPending = false;
+
+function ipLsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function ipLsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* zasebni nacin */ } }
+
+function ipIsIOS() {
+  const ua = navigator.userAgent;
+  if (/iPhone|iPad|iPod/i.test(ua)) return true;
+  return /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+}
+
+function ipProbablyInstalled() {
+  return isStandalone() || ipLsGet(IP_LS_INSTALLED) === "1";
+}
+
+function ipBuildModal() {
+  if (ipModal) return ipModal;
+  const ic = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11m0 0 4-4m-4 4-4-4"/><path d="M4 17v2.5A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5V17"/></svg>';
+  const style = document.createElement("style");
+  style.textContent =
+    ".ip-overlay{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;padding:20px;background:rgba(8,10,20,.55);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}" +
+    ".ip-overlay[hidden]{display:none}" +
+    ".ip-box{width:100%;max-width:360px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;padding:24px 22px;border-radius:16px;background:#12131a;color:#f4f5f7;border:1px solid rgba(255,255,255,.14);box-shadow:0 24px 60px -12px rgba(0,0,0,.6);font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}" +
+    ".ip-box h2{margin:0;font-size:1.1rem;font-weight:600}" +
+    ".ip-box p{margin:0;font-size:.9rem;line-height:1.5;color:rgba(244,245,247,.72)}" +
+    ".ip-ico svg{width:32px;height:32px;display:block}" +
+    ".ip-primary{margin-top:4px;display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border:0;border-radius:999px;background:linear-gradient(135deg,#6366f1,#a855f7);color:#fff;font:inherit;font-size:.9rem;font-weight:600;cursor:pointer}" +
+    ".ip-primary svg{width:17px;height:17px}" +
+    ".ip-cancel{padding:6px 10px;border:0;background:none;color:rgba(244,245,247,.6);font:inherit;font-size:.8rem;cursor:pointer}" +
+    ".ip-cancel:hover{color:#f4f5f7}" +
+    ".ip-cancel[hidden]{display:none}" +
+    "@media (prefers-color-scheme:light){.ip-box{background:#fff;color:#1a1c22;border-color:rgba(0,0,0,.12)}.ip-box p{color:rgba(26,28,34,.66)}.ip-cancel{color:rgba(26,28,34,.55)}.ip-cancel:hover{color:#1a1c22}}";
+  document.head.appendChild(style);
+
+  const ov = document.createElement("div");
+  ov.className = "ip-overlay";
+  ov.hidden = true;
+  ov.innerHTML =
+    '<div class="ip-box" role="dialog" aria-modal="true" aria-label="Namesti aplikacijo">' +
+      '<span class="ip-ico">' + ic + "</span>" +
+      "<h2>Namesti aplikacijo</h2>" +
+      '<p class="ip-text"></p>' +
+      '<button class="ip-primary" type="button">' + ic + '<span class="ip-label">Namesti</span></button>' +
+      '<button class="ip-cancel" type="button">Prekliči</button>' +
+    "</div>";
+  document.body.appendChild(ov);
+  ov.addEventListener("click", (e) => { if (e.target === ov) ipClose(); });
+  ov.querySelector(".ip-cancel").addEventListener("click", ipClose);
+  ov.querySelector(".ip-primary").addEventListener("click", ipPrimary);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && ipModal && !ipModal.hidden) ipClose();
+  });
+  ipModal = ov;
+  return ov;
+}
+
+function ipOpen() {
+  const ov = ipBuildModal();
+  ipIosVariant = !deferredInstallPrompt && ipIsIOS();
+  const label = ov.querySelector(".ip-label");
+  const cancel = ov.querySelector(".ip-cancel");
+  if (ipIosVariant) {
+    ov.querySelector(".ip-text").textContent = "V Safariju: Deli → Dodaj na začetni zaslon.";
+    label.textContent = "Razumem";
+    cancel.hidden = true;
+  } else {
+    ov.querySelector(".ip-text").textContent = "Za najboljšo izkušnjo namesti aplikacijo na svojo napravo.";
+    label.textContent = "Namesti";
+    cancel.hidden = false;
+  }
+  ov.hidden = false;
+  ov.querySelector(".ip-primary").focus();
+}
+
+function ipClose() {
+  if (!ipModal) return;
+  ipModal.hidden = true;
+  ipLsSet(IP_LS_DONE, "1");
+  if (ipIosVariant) ipLsSet(IP_LS_IOS_OFF, "1");
+}
+
+function ipPrimary() {
+  ipClose();
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.finally(() => { deferredInstallPrompt = null; });
+}
+
+function ipTriggerOpen() {
+  const n = (parseInt(ipLsGet(IP_LS_COUNT), 10) || 0) + 1;
+  ipLsSet(IP_LS_COUNT, String(n));
+  if (n > IP_MAX) { ipLsSet(IP_LS_DONE, "1"); return; }
+  if (n >= IP_MAX) ipLsSet(IP_LS_DONE, "1");
+  setTimeout(ipOpen, 400);
+}
+
+function maybeInstallPromoAfterLogin() {
+  if (ipProbablyInstalled()) return;
+  if (ipLsGet(IP_LS_DONE) === "1") return;
+  if (ipIsIOS() && ipLsGet(IP_LS_IOS_OFF) === "1") return;
+  try {
+    if (sessionStorage.getItem(IP_SS_COUNTED)) return;
+    sessionStorage.setItem(IP_SS_COUNTED, "1");
+  } catch (e) { /* zasebni nacin */ }
+  if (!deferredInstallPrompt && !ipIsIOS()) { ipPending = true; return; }
+  ipTriggerOpen();
+}
+
+// Ce beforeinstallprompt pride sele po prijavi, takrat pokazi okno.
+window.addEventListener("beforeinstallprompt", () => {
+  if (!ipPending) return;
+  ipPending = false;
+  if (ipProbablyInstalled() || ipLsGet(IP_LS_DONE) === "1") return;
+  setTimeout(() => { if (deferredInstallPrompt) ipTriggerOpen(); }, 150);
+});
+
+window.addEventListener("appinstalled", () => {
+  ipLsSet(IP_LS_INSTALLED, "1");
+  ipLsSet(IP_LS_DONE, "1");
+  if (ipModal) ipModal.hidden = true;
+});
+
+// Ce je PWA ze namescen (Chromium), si to trajno zapomni.
+if (navigator.getInstalledRelatedApps) {
+  try {
+    navigator.getInstalledRelatedApps().then((apps) => {
+      if (apps && apps.length) ipLsSet(IP_LS_INSTALLED, "1");
+    }).catch(() => {});
+  } catch (e) { /* ni pomembno */ }
+}
+
 /** Registrira service worker za offline uporabo. */
 function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
@@ -1506,6 +1653,7 @@ async function bootApp() {
   renderAll({ persist: false });   // stanje je usklajeno; ne prožimo takoj potiska
   updateAccountUI();
   updateSyncBadge();
+  maybeInstallPromoAfterLogin();
 }
 
 function teardownApp() {
