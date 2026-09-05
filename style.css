@@ -91,6 +91,7 @@ body {
 }
 
 .topbar-inner {
+  position: relative;
   max-width: 1100px;
   margin: 0 auto;
   padding: 10px 16px 12px;
@@ -132,6 +133,32 @@ body {
   flex: 0 0 auto;
 }
 
+/* Uporabniski gumb (racun) - okrogel, v slogu ostalih kontrol */
+.user-btn {
+  position: relative;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--text);
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: background .15s ease, border-color .15s ease, transform .1s ease;
+}
+.user-btn svg { width: 19px; height: 19px; display: block; }
+.user-btn:active { transform: scale(.94); }
+@media (hover: hover) {
+  .user-btn:hover {
+    background: var(--card-2);
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  }
+}
+
 /* Sprozilci zlozljivih menijev: skriti na desktopu, vidni na telefonu */
 .menu-triggers { display: none; }
 
@@ -160,9 +187,8 @@ body {
 .panel { display: contents; }
 
 .cl-select {
-  flex: 1 1 160px;
-  min-width: 140px;
-  margin-left: 6px;
+  width: 100%;
+  margin-left: 0;
   padding: 10px 34px 10px 16px;
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -580,7 +606,11 @@ body {
     gap: 16px;
   }
   .brand         { flex: 0 1 auto; min-width: 0; }
+  /* Na namizju izbirnik ostane ob znamki, a ne razteza celotne vrstice. */
+  .cl-select     { width: auto; flex: 0 1 220px; min-width: 160px; }
   .progress-wrap { flex: 1 1 240px; max-width: 340px; }
+  /* Uporabniski gumb gre na skrajno desno stran vrstice. */
+  .user-btn      { order: 5; margin-left: auto; }
   /* Sprozilca menijev sta vidna tudi na namizju, tik ob izbirniku checkliste (levo) */
   .menu-zone     { position: relative; flex: 0 0 auto; }
   .menu-triggers { display: flex; gap: 8px; }
@@ -634,9 +664,20 @@ body {
   .topbar-inner { padding: 10px 12px 6px; gap: 0; }
   .brand { margin-bottom: 8px; }
 
-  /* Naslov ostane viden, izbirnik checkliste pa zapolni preostanek vrstice */
+  /* Uporabniski gumb pripet cisto desno v vrstico z naslovom. */
+  .user-btn {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    z-index: 1;
+  }
+
   .brand-title { font-size: 17px; }
-  .brand .cl-select { flex: 1 1 auto; min-width: 0; }
+  /* Izbirnik checkliste je v svoji vrstici pod naslovom in cez celo sirino. */
+  .cl-select {
+    width: 100%;
+    margin-bottom: 10px;
+  }
 
   /* Pokazi sprozilce menijev */
   .menu-triggers {
@@ -722,6 +763,155 @@ body {
     flex: 0 1 auto;
     text-align: center;
   }
+}
+
+/* ============ PRIJAVA (auth gate) ============ */
+.auth-gate[hidden] { display: none !important; }
+.auth-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--bg);
+  background-image: radial-gradient(120% 60% at 50% 0%, var(--bg-tint) 0%, var(--bg) 60%);
+  overflow-y: auto;
+}
+/* Ko je prijava vidna, skrij aplikacijo pod njo. */
+body.auth-locked .topbar,
+body.auth-locked .content { display: none; }
+
+.auth-card {
+  width: 100%;
+  max-width: 360px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 28px 24px 22px;
+  text-align: center;
+}
+.auth-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 15px;
+  background: linear-gradient(140deg, var(--accent), var(--accent-2));
+  color: #fff;
+  box-shadow: 0 8px 20px -6px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+.auth-mark svg { width: 26px; height: 26px; }
+.auth-title {
+  margin: 14px 0 4px;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  background: var(--title-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.auth-sub {
+  margin: 0 0 18px;
+  font-size: 14px;
+  color: var(--text-soft);
+}
+.auth-form { display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.auth-label {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--text-soft);
+  margin-top: 6px;
+}
+.auth-input {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--card-2);
+  color: var(--text);
+  font-size: 15px;
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.auth-input:focus {
+  outline: none;
+  background: var(--card);
+  border-color: var(--accent);
+  box-shadow: var(--ring);
+}
+.auth-error {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--danger);
+}
+.auth-submit {
+  margin-top: 14px;
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 15px;
+}
+.auth-submit[disabled] { opacity: .6; cursor: progress; }
+.auth-toggle {
+  margin-top: 14px;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.auth-toggle:hover { text-decoration: underline; }
+
+/* ============ MENI RAČUNA ============ */
+.user-menu[hidden] { display: none !important; }
+.user-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 16px;
+  z-index: 40;
+  width: 240px;
+  max-width: calc(100vw - 32px);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.user-menu-email {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  overflow-wrap: anywhere;
+}
+.user-menu-status {
+  margin: 0 0 4px;
+  font-size: 12.5px;
+  color: var(--text-soft);
+}
+.user-menu .tool-btn { width: 100%; }
+
+@media (max-width: 719px) {
+  .user-menu { right: 12px; top: calc(100% + 6px); }
+}
+
+/* Stanje sinhronizacije na gumbu računa */
+.user-btn.is-syncing { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
+.user-btn.is-offline { border-color: color-mix(in srgb, var(--danger) 50%, var(--line)); }
+.user-btn.is-dirty::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--accent);
 }
 
 /* Spostuj sistemsko nastavitev za manj gibanja. */

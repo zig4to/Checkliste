@@ -125,30 +125,63 @@ function buildSeedStore() {
 
 /* ---------- Stanje ---------- */
 
-let store = loadStore();
+/* Stanje se napolni šele PO uspešni prijavi (glej razdelek PRIJAVA spodaj).
+   Vsak uporabnik ima svojo lokalno kopijo pod ključem
+   `checkliste.v1.<userId>`; stari ključ `checkliste.v1` se ne uporablja več. */
+let store = null;
 
-/** Naloži iz LocalStorage ali ustvari začetno stanje. */
-function loadStore() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw) {
-    try {
-      const parsed = JSON.parse(raw);
-      if (parsed && Array.isArray(parsed.checklists) && parsed.checklists.length) {
-        // Ob vsakem zagonu je izbrana prva checklista na seznamu.
-        parsed.activeId = parsed.checklists[0].id;
-        return parsed;
-      }
-    } catch (e) {
-      console.warn("Napaka pri branju shrambe, ustvarjam novo.", e);
-    }
-  }
-  // Prvi zagon: uvozi začetne liste (samo enkrat).
-  return buildSeedStore();
+/** Ključ lokalne kopije za trenutno prijavljenega uporabnika (ali null). */
+function userStoreKey() {
+  const uid = Auth.userId();
+  return uid ? `${STORAGE_KEY}.${uid}` : null;
 }
 
-/** Shrani celotno stanje. Kliče se ob vsaki spremembi. */
+/** Prebere lokalno kopijo (predpomnilnik) trenutnega uporabnika ali null. */
+function loadLocalStore() {
+  const key = userStoreKey();
+  if (!key) return null;
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const data = parsed && parsed.store ? parsed.store : null;
+    if (data && Array.isArray(data.checklists) && data.checklists.length) {
+      data.activeId = data.checklists[0].id;
+      return data;
+    }
+  } catch (e) {
+    console.warn("Napaka pri branju lokalne kopije.", e);
+  }
+  return null;
+}
+
+/** Zapiše lokalno kopijo stanja za trenutnega uporabnika. */
+function persistLocal(s, stamp) {
+  const key = userStoreKey();
+  if (!key) return;
+  try {
+    localStorage.setItem(key, JSON.stringify({ store: s, updated_at: stamp || null }));
+  } catch (e) {
+    console.warn("Lokalne kopije ni bilo mogoče shraniti.", e);
+  }
+}
+
+/** Pretvori poljuben (npr. iz oblaka prejet) objekt v veljavno stanje. */
+function normalizeStore(raw) {
+  const list = raw && Array.isArray(raw.checklists) ? raw.checklists : [];
+  const checklists = list.map(normalizeChecklist);
+  if (!checklists.length) return buildSeedStore();
+  return { activeId: checklists[0].id, seeded: true, checklists };
+}
+
+/** Shrani celotno stanje: lokalna kopija + potisk v oblak (z zamikom).
+   Kliče se ob vsaki spremembi (prek renderAll). */
 function save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  const key = userStoreKey();
+  if (!store || !key) return;
+  const stamp = new Date().toISOString();
+  persistLocal(store, stamp);
+  Auth.queuePush(store, stamp);
 }
 
 /* ---------- Dostop do trenutne checkliste ---------- */
@@ -832,6 +865,25 @@ function bindTopbar() {
   $("#btnScan").addEventListener("click", startScan);
   $("#btnTheme").addEventListener("click", toggleTheme);
 
+  // Račun (prijava / sinhronizacija)
+  if (userMenu.btn) {
+    userMenu.btn.addEventListener("click", (e) => { e.stopPropagation(); toggleUserMenu(); });
+    userMenu.sync.addEventListener("click", async () => {
+      if (userMenu.status) userMenu.status.textContent = "Sinhroniziram…";
+      await Auth.syncNow();
+      updateSyncBadge();
+    });
+    userMenu.out.addEventListener("click", () => { closeUserMenu(); Auth.signOut(); });
+    document.addEventListener("click", (e) => {
+      if (userMenu.el.hidden) return;
+      if (userMenu.el.contains(e.target) || userMenu.btn.contains(e.target)) return;
+      closeUserMenu();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeUserMenu();
+    });
+  }
+
   // Skeniranje: obravnava izbrane slike
   scan.fileGallery.addEventListener("change", (e) => {
     const f = e.target.files[0];
@@ -1037,11 +1089,411 @@ function registerServiceWorker() {
 }
 
 /* ================================================================
+   PRIJAVA IN SINHRONIZACIJA (Supabase)
+   - Prijava je obvezna: brez seje se pokaže zaslon za prijavo.
+   - Vsak uporabnik ima svojo vrstico v tabeli "user_checklists"
+     (stolpec "data" tipa jsonb) + lokalno kopijo za delo brez povezave.
+   - Sinhronizacija: zadnji zapis zmaga (cel objekt naenkrat).
+   ================================================================ */
+
+const SB_TABLE         = "user_checklists";
+const PUSH_DEBOUNCE_MS  = 1500;
+const PUSH_RETRY_MS     = 4000;
+
+const authGate = {
+  el:     $("#authGate"),
+  form:   $("#authForm"),
+  email:  $("#authEmail"),
+  pass:   $("#authPassword"),
+  submit: $("#authSubmit"),
+  toggle: $("#authToggle"),
+  error:  $("#authError"),
+  sub:    $("#authSub"),
+  mode:   "signin"
+};
+
+const userMenu = {
+  btn:    $("#btnUser"),
+  el:     $("#userMenu"),
+  email:  $("#userMenuEmail"),
+  status: $("#userMenuStatus"),
+  sync:   $("#btnSyncNow"),
+  out:    $("#btnSignOut")
+};
+
+const Auth = {
+  client: null,
+  user: null,
+  _onIn: null,
+  _onOut: null,
+  _pushTimer: null,
+  _pending: null,        // { store, stamp }
+  _pushing: false,
+  remoteStamp: null,
+
+  configured() {
+    const c = window.SUPABASE_CONFIG || {};
+    return !!(c.url && c.anonKey &&
+      !/YOUR-PROJECT/.test(c.url) && !/YOUR-ANON/.test(c.anonKey));
+  },
+
+  userId() { return this.user ? this.user.id : null; },
+  email()  { return this.user ? this.user.email : null; },
+
+  async start({ onSignedIn, onSignedOut }) {
+    this._onIn = onSignedIn;
+    this._onOut = onSignedOut;
+    bindAuthGate();
+    setAuthMode("signin");
+
+    if (!this.configured()) {
+      showAuthGate();
+      setAuthError("Aplikacija ni povezana s Supabase. Uredi datoteko config.js (Project URL in anon ključ).", true);
+      authGate.submit.disabled = true;
+      return;
+    }
+    if (!window.supabase || !window.supabase.createClient) {
+      showAuthGate();
+      setAuthError("Knjižnice za prijavo ni bilo mogoče naložiti. Poveži se z internetom in osveži stran.", true);
+      return;
+    }
+
+    try {
+      this.client = window.supabase.createClient(
+        window.SUPABASE_CONFIG.url,
+        window.SUPABASE_CONFIG.anonKey,
+        { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } }
+      );
+    } catch (e) {
+      console.warn(e);
+      showAuthGate();
+      setAuthError("Napaka pri povezavi s Supabase. Preveri config.js.", true);
+      return;
+    }
+
+    this.client.auth.onAuthStateChange((event, session) => {
+      const next = session ? session.user : null;
+      const prevId = this.user ? this.user.id : null;
+      this.user = next;
+      if (event === "SIGNED_IN" && next && next.id !== prevId) {
+        hideAuthGate();
+        this._onIn && this._onIn();
+      } else if (event === "SIGNED_OUT") {
+        this._clearPush();
+        this._onOut && this._onOut();
+      }
+    });
+
+    window.addEventListener("online", () => {
+      updateSyncBadge();
+      if (this._pending) this._flush();
+      else maybePull();
+    });
+    window.addEventListener("offline", updateSyncBadge);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") maybePull();
+    });
+
+    let session = null;
+    try {
+      const { data } = await this.client.auth.getSession();
+      session = data.session;
+    } catch (e) { console.warn(e); }
+
+    this.user = session ? session.user : null;
+    if (this.user) {
+      hideAuthGate();
+      this._onIn && this._onIn();
+    } else {
+      showAuthGate();
+    }
+  },
+
+  signIn(email, password) { return this.client.auth.signInWithPassword({ email, password }); },
+  signUp(email, password) { return this.client.auth.signUp({ email, password }); },
+  async signOut() {
+    try { await this.syncNow(); } catch (e) { /* ignore */ }
+    this._clearPush();
+    try { return await this.client.auth.signOut(); }
+    catch (e) { console.warn(e); this._onOut && this._onOut(); }
+  },
+
+  async pull() {
+    const uid = this.userId();
+    if (!uid) return null;
+    const { data, error } = await this.client
+      .from(SB_TABLE)
+      .select("data, updated_at")
+      .eq("user_id", uid)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return null;
+    this.remoteStamp = data.updated_at || null;
+    return { data: data.data, updated_at: data.updated_at || null };
+  },
+
+  async push(storeObj, stamp) {
+    const uid = this.userId();
+    if (!uid) return;
+    const updated_at = stamp || new Date().toISOString();
+    const { error } = await this.client
+      .from(SB_TABLE)
+      .upsert({ user_id: uid, data: storeObj, updated_at }, { onConflict: "user_id" });
+    if (error) throw error;
+    this.remoteStamp = updated_at;
+  },
+
+  queuePush(storeObj, stamp) {
+    this._pending = { store: storeObj, stamp: stamp || new Date().toISOString() };
+    updateSyncBadge();
+    clearTimeout(this._pushTimer);
+    this._pushTimer = setTimeout(() => this._flush(), PUSH_DEBOUNCE_MS);
+  },
+
+  async syncNow() {
+    clearTimeout(this._pushTimer);
+    if (!this._pending && store && this.userId()) {
+      this._pending = { store, stamp: new Date().toISOString() };
+    }
+    await this._flush();
+  },
+
+  async _flush() {
+    if (this._pushing || !this._pending) return;
+    if (!navigator.onLine) { updateSyncBadge(); return; }
+    this._pushing = true;
+    updateSyncBadge();
+    const job = this._pending;
+    try {
+      await this.push(job.store, job.stamp);
+      if (this._pending === job) this._pending = null;
+    } catch (e) {
+      console.warn("Sinhronizacija ni uspela, poskusim znova.", e);
+      clearTimeout(this._pushTimer);
+      this._pushTimer = setTimeout(() => this._flush(), PUSH_RETRY_MS);
+    } finally {
+      this._pushing = false;
+      updateSyncBadge();
+    }
+  },
+
+  _clearPush() {
+    clearTimeout(this._pushTimer);
+    this._pending = null;
+    this._pushing = false;
+    this.remoteStamp = null;
+  }
+};
+
+/* ---------- Zaslon za prijavo ---------- */
+
+let authGateBound = false;
+
+function showAuthGate() {
+  document.body.classList.add("auth-locked");
+  if (authGate.el) authGate.el.hidden = false;
+  if (authGate.email) setTimeout(() => authGate.email.focus(), 60);
+}
+
+function hideAuthGate() {
+  document.body.classList.remove("auth-locked");
+  if (authGate.el) authGate.el.hidden = true;
+  setAuthError("", false);
+}
+
+function setAuthError(msg, show) {
+  if (!authGate.error) return;
+  authGate.error.textContent = msg || "";
+  authGate.error.hidden = !(show && msg);
+}
+
+function setAuthMode(mode) {
+  authGate.mode = mode;
+  const signup = mode === "signup";
+  if (!authGate.submit) return;
+  authGate.submit.textContent = signup ? "Ustvari račun" : "Prijava";
+  authGate.toggle.textContent = signup ? "Že imaš račun? Prijavi se" : "Nimaš računa? Registriraj se";
+  authGate.sub.textContent = signup
+    ? "Ustvari račun za shranjevanje svojih checklist."
+    : "Prijavi se za dostop do svojih checklist.";
+  authGate.pass.setAttribute("autocomplete", signup ? "new-password" : "current-password");
+  setAuthError("", false);
+}
+
+function translateAuthError(error) {
+  const m = ((error && error.message) || "").toLowerCase();
+  if (m.includes("invalid login")) return "Napačna e-pošta ali geslo.";
+  if (m.includes("already registered") || m.includes("already been registered")) return "Ta e-pošta je že registrirana. Prijavi se.";
+  if (m.includes("password should be") || m.includes("password should contain")) return "Geslo mora imeti vsaj 6 znakov.";
+  if (m.includes("invalid email") || m.includes("unable to validate email")) return "Neveljaven e-naslov.";
+  if (m.includes("email not confirmed")) return "E-naslov še ni potrjen. Preveri e-pošto.";
+  if (m.includes("rate limit") || m.includes("too many")) return "Preveč poskusov. Počakaj minuto in poskusi znova.";
+  return (error && error.message) || "Prijava ni uspela.";
+}
+
+function bindAuthGate() {
+  if (authGateBound || !authGate.form) return;
+  authGateBound = true;
+
+  authGate.toggle.addEventListener("click", () => {
+    setAuthMode(authGate.mode === "signup" ? "signin" : "signup");
+  });
+
+  authGate.form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = authGate.email.value.trim();
+    const password = authGate.pass.value;
+    if (!email || password.length < 6) {
+      setAuthError("Vpiši veljaven e-naslov in geslo (vsaj 6 znakov).", true);
+      return;
+    }
+    if (!navigator.onLine) {
+      setAuthError("Ni povezave. Za prijavo potrebuješ internet.", true);
+      return;
+    }
+    authGate.submit.disabled = true;
+    setAuthError("", false);
+    try {
+      const { data, error } = authGate.mode === "signup"
+        ? await Auth.signUp(email, password)
+        : await Auth.signIn(email, password);
+      if (error) { setAuthError(translateAuthError(error), true); return; }
+      if (authGate.mode === "signup" && !data.session) {
+        setAuthError("Račun ustvarjen. Preveri e-pošto za potrditev, nato se prijavi.", true);
+        setAuthMode("signin");
+        return;
+      }
+      // Uspeh: onAuthStateChange sproži nadaljevanje (bootApp).
+    } catch (err) {
+      console.warn(err);
+      setAuthError("Napaka pri prijavi. Preveri povezavo in poskusi znova.", true);
+    } finally {
+      authGate.submit.disabled = false;
+    }
+  });
+}
+
+/* ---------- Meni računa ---------- */
+
+function openUserMenu() {
+  if (!userMenu.el) return;
+  updateAccountUI();
+  userMenu.el.hidden = false;
+  userMenu.btn.setAttribute("aria-expanded", "true");
+}
+function closeUserMenu() {
+  if (!userMenu.el) return;
+  userMenu.el.hidden = true;
+  userMenu.btn.setAttribute("aria-expanded", "false");
+}
+function toggleUserMenu() {
+  if (userMenu.el.hidden) openUserMenu(); else closeUserMenu();
+}
+
+function updateAccountUI() {
+  if (userMenu.email) userMenu.email.textContent = Auth.email() || "—";
+  updateSyncBadge();
+}
+
+function updateSyncBadge() {
+  if (!userMenu.btn) return;
+  const offline = !navigator.onLine;
+  const syncing = Auth._pushing;
+  const dirty = !!Auth._pending && !syncing;
+  userMenu.btn.classList.toggle("is-offline", offline);
+  userMenu.btn.classList.toggle("is-syncing", syncing);
+  userMenu.btn.classList.toggle("is-dirty", dirty);
+  if (userMenu.status) {
+    userMenu.status.textContent = offline
+      ? "Brez povezave – shranjeno lokalno."
+      : syncing ? "Sinhroniziram…"
+      : dirty   ? "Čaka na sinhronizacijo…"
+      : "Vse sinhronizirano.";
+  }
+}
+
+/* ---------- Zagon aplikacije po prijavi ---------- */
+
+let listenersBound = false;
+
+/** Poišče stanje za uporabnika: oblak → lokalna kopija → seme. */
+async function resolveUserStore() {
+  try {
+    const remote = await Auth.pull();
+    if (remote && remote.data && Array.isArray(remote.data.checklists) && remote.data.checklists.length) {
+      const s = normalizeStore(remote.data);
+      persistLocal(s, remote.updated_at);
+      return s;
+    }
+    // Prvi vpis tega računa: posej privzete checkliste in jih shrani v oblak.
+    const seeded = buildSeedStore();
+    persistLocal(seeded, null);
+    try {
+      await Auth.push(seeded);
+      persistLocal(seeded, Auth.remoteStamp);
+    } catch (e) {
+      console.warn("Začetnega semena ni bilo mogoče shraniti v oblak; poskusim pozneje.", e);
+      Auth.queuePush(seeded);
+    }
+    return seeded;
+  } catch (e) {
+    console.warn("Branje iz oblaka ni uspelo, uporabljam lokalno kopijo.", e);
+    const local = loadLocalStore();
+    if (local) return local;
+    const seeded = buildSeedStore();
+    persistLocal(seeded, null);
+    Auth.queuePush(seeded);   // potisni takoj, ko bo povezava
+    return seeded;
+  }
+}
+
+/** Če je strežniška vrstica novejša in nimamo čakajočih sprememb, jo prenesi.
+   Zaščita proti tihemu razhajanju med napravami (zadnji zapis sicer zmaga). */
+async function maybePull() {
+  if (!Auth.userId() || Auth._pending || Auth._pushing || !navigator.onLine || !store) return;
+  const knownStamp = Auth.remoteStamp;
+  try {
+    const remote = await Auth.pull();   // posodobi Auth.remoteStamp kot stranski učinek
+    if (!remote || !remote.data) return;
+    const newer = !knownStamp || (remote.updated_at && remote.updated_at > knownStamp);
+    if (newer && Array.isArray(remote.data.checklists) && remote.data.checklists.length) {
+      store = normalizeStore(remote.data);
+      persistLocal(store, remote.updated_at);
+      renderAll({ persist: false });
+      updateAccountUI();
+    }
+  } catch (e) { /* tiho */ }
+}
+
+async function bootApp() {
+  document.body.classList.remove("auth-locked");
+  store = await resolveUserStore();
+
+  if (!listenersBound) {
+    bindTopbar();
+    bindCategoryList();
+    listenersBound = true;
+  }
+  collapseAllCategories();
+  renderAll({ persist: false });   // stanje je usklajeno; ne prožimo takoj potiska
+  updateAccountUI();
+  updateSyncBadge();
+}
+
+function teardownApp() {
+  store = null;
+  closeUserMenu();
+  if (els.categoryList) els.categoryList.innerHTML = "";
+  showAuthGate();
+}
+
+/* ================================================================
    ZAGON
    ================================================================ */
 
 /** Ob nalaganju strani naj bodo vse kategorije vseh checklist zložene. */
 function collapseAllCategories() {
+  if (!store) return;
   store.checklists.forEach((cl) => cl.categories.forEach((cat) => { cat.collapsed = true; }));
 }
 
@@ -1053,12 +1505,9 @@ function init() {
   }
   if (scan.overlay) scan.overlay.hidden = true;
   initTheme();
-  bindTopbar();
-  bindCategoryList();
-  collapseAllCategories();
-  renderAll({ persist: true }); // shrani začetno stanje ob prvem zagonu
   setupInstallPrompt();
   registerServiceWorker();
+  Auth.start({ onSignedIn: bootApp, onSignedOut: teardownApp });
 }
 
 document.addEventListener("DOMContentLoaded", init);

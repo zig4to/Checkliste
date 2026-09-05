@@ -6,7 +6,7 @@
 
 "use strict";
 
-const CACHE_VERSION = "v6";
+const CACHE_VERSION = "v9";
 const SHELL_CACHE   = `checkliste-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `checkliste-runtime-${CACHE_VERSION}`;
 
@@ -15,9 +15,11 @@ const RUNTIME_CACHE = `checkliste-runtime-${CACHE_VERSION}`;
 const SHELL_ASSETS = [
   "./",
   "./index.html",
-  "./style.css?v=18",
-  "./script.js?v=15",
+  "./style.css?v=21",
+  "./config.js?v=1",
+  "./script.js?v=16",
   "./manifest.webmanifest",
+  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.js",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/icon-maskable-192.png",
@@ -122,6 +124,10 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   // Ne prestrezaj drugih shem (npr. chrome-extension:).
   if (url.protocol !== "http:" && url.protocol !== "https:") return;
+
+  // Supabase (prijava + sinhronizacija): vedno naravnost na omrežje,
+  // nikoli iz predpomnilnika.
+  if (url.hostname.endsWith(".supabase.co")) return;
 
   if (request.mode === "navigate") {
     event.respondWith(handleNavigation(event));

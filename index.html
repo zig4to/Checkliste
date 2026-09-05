@@ -13,9 +13,32 @@
   <meta name="apple-mobile-web-app-title" content="Nam Puzabu" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="style.css?v=18" />
+  <link rel="stylesheet" href="style.css?v=21" />
 </head>
 <body>
+  <!-- ============ PRIJAVA (zaslon pred aplikacijo) ============ -->
+  <div id="authGate" class="auth-gate" hidden>
+    <div class="auth-card">
+      <span class="auth-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 3.5h6A1.5 1.5 0 0 1 16.5 5v.5H18a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-12a2 2 0 0 1 2-2h1.5V5A1.5 1.5 0 0 1 9 3.5Z"/>
+          <path d="m8.5 12.5 2 2 4-4.5"/><path d="M8.5 18h7"/>
+        </svg>
+      </span>
+      <h1 class="auth-title">Nam Puzabu</h1>
+      <p class="auth-sub" id="authSub">Prijavi se za dostop do svojih checklist.</p>
+      <form id="authForm" class="auth-form" autocomplete="on">
+        <label class="auth-label" for="authEmail">E-pošta</label>
+        <input id="authEmail" class="auth-input" type="email" name="email" autocomplete="email" required inputmode="email" />
+        <label class="auth-label" for="authPassword">Geslo</label>
+        <input id="authPassword" class="auth-input" type="password" name="password" autocomplete="current-password" required minlength="6" />
+        <p id="authError" class="auth-error" role="alert" hidden></p>
+        <button id="authSubmit" class="tool-btn primary auth-submit" type="submit">Prijava</button>
+      </form>
+      <button id="authToggle" class="auth-toggle" type="button">Nimaš računa? Registriraj se</button>
+    </div>
+  </div>
+
   <!-- ============ GLAVA ============ -->
   <header class="topbar">
     <div class="topbar-inner">
@@ -27,8 +50,26 @@
           </svg>
         </span>
         <h1 class="brand-title">Nam Puzabu</h1>
-        <select id="checklistSelect" class="cl-select" aria-label="Izberi checklisto"></select>
       </div>
+
+      <!-- Uporabniski racun: v vrstici z naslovom, poravnan cisto desno -->
+      <button id="btnUser" class="user-btn" type="button" title="Uporabniški račun" aria-label="Uporabniški račun" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </button>
+
+      <!-- Meni računa (odpre se ob kliku na ikono uporabnika) -->
+      <div id="userMenu" class="user-menu" hidden>
+        <p class="user-menu-email" id="userMenuEmail">&nbsp;</p>
+        <p class="user-menu-status" id="userMenuStatus">&nbsp;</p>
+        <button id="btnSyncNow" class="tool-btn" type="button">↻ Sinhroniziraj zdaj</button>
+        <button id="btnSignOut" class="tool-btn danger" type="button">Odjava</button>
+      </div>
+
+      <!-- Izbirnik checkliste v svoji vrstici pod naslovom -->
+      <select id="checklistSelect" class="cl-select" aria-label="Izberi checklisto"></select>
 
       <!-- Sprožilci zložljivih menijev + njuna panela (na telefonu se panela
            razprejo navzdol, na namizju se odpreta kot spustna seznama) -->
@@ -156,6 +197,9 @@
 
   <!-- Tesseract.js za OCR (naloži se s CDN, potrebuje internet ob prvem zajemu) -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <script src="script.js?v=15"></script>
+  <!-- Supabase SDK (prijava + sinhronizacija checklist) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.js"></script>
+  <script src="config.js?v=1"></script>
+  <script src="script.js?v=16"></script>
 </body>
 </html>
