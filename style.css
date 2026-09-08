@@ -1024,3 +1024,38 @@ body.auth-locked .content { display: none; }
     transition-duration: .01ms !important;
   }
 }
+
+/* ============ Nalagalnik ob prijavi iz huba (SSO) ============ */
+/* Privzeto skrit. Med izmenjavo SSO žetonov ga pokaže razred `sso-pending`
+   na <html>, ki ga postavi pre-paint skript v index.html še pred izrisom;
+   Auth._trySsoLogin() ga odstrani, ko je prijava končana (uspešno ali ne). */
+#ssoLoader { display: none; }
+.sso-pending #ssoLoader {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  background: var(--bg);
+  background-image: radial-gradient(120% 60% at 50% 0%, var(--bg-tint) 0%, var(--bg) 60%);
+  text-align: center;
+}
+.sso-pending #authGate { display: none !important; }
+.sso-spinner {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 3px solid var(--line);
+  border-top-color: var(--accent);
+  animation: sso-spin .8s linear infinite;
+}
+.sso-loader-text {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-soft);
+}
+@keyframes sso-spin { to { transform: rotate(360deg); } }

@@ -13,9 +13,28 @@
   <meta name="apple-mobile-web-app-title" content="Nam Puzabu" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="style.css?v=27" />
+  <link rel="stylesheet" href="style.css?v=28" />
+  <script>
+    /* Prijava iz huba (TomsStudios): če naslov nosi #sb_at&sb_rt, pokaži
+       nalagalnik namesto prijavnega obrazca, dokler se prijava ne izvede.
+       Teče sinhrono, še pred izrisom telesa (brez utripa obrazca). */
+    (function () {
+      try {
+        var h = (location.hash || "").replace(/^#/, "");
+        if (h.indexOf("sb_at=") > -1 && h.indexOf("sb_rt=") > -1) {
+          document.documentElement.classList.add("sso-pending");
+        }
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
+  <!-- ============ NALAGALNIK ob prijavi iz huba (SSO) ============ -->
+  <div id="ssoLoader" role="status" aria-live="polite">
+    <span class="sso-spinner" aria-hidden="true"></span>
+    <p class="sso-loader-text">Prijavljanje v aplikacijo …</p>
+  </div>
+
   <!-- ============ PRIJAVA (zaslon pred aplikacijo) ============ -->
   <div id="authGate" class="auth-gate" hidden>
     <div class="auth-card">
@@ -211,6 +230,6 @@
   <!-- Supabase SDK (prijava + sinhronizacija checklist) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.js"></script>
   <script src="config.js?v=1"></script>
-  <script src="script.js?v=18"></script>
+  <script src="script.js?v=19"></script>
 </body>
 </html>

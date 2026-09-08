@@ -1304,6 +1304,7 @@ const Auth = {
   _pushTimer: null,
   _pending: null,        // { store, stamp }
   _pushing: false,
+  _ssoInProgress: false, // med izmenjavo SSO žetonov iz huba
   remoteStamp: null,
 
   configured() {
@@ -1347,6 +1348,9 @@ const Auth = {
     }
 
     this.client.auth.onAuthStateChange((event, session) => {
+      // Začetno prijavo iz huba obravnava start() sam (spodaj), da se
+      // bootApp ne sproži dvakrat.
+      if (this._ssoInProgress) return;
       const next = session ? session.user : null;
       const prevId = this.user ? this.user.id : null;
       this.user = next;
@@ -1369,6 +1373,11 @@ const Auth = {
       if (document.visibilityState === "visible") maybePull();
     });
 
+    // Prijava iz huba (TomsStudios): naslov lahko nosi
+    // #sb_at=<access_token>&sb_rt=<refresh_token>. Zamenjamo ju za sejo; med
+    // tem je viden nalagalnik (glej .sso-pending v index.html in style.css).
+    await this._trySsoLogin();
+
     let session = null;
     try {
       const { data } = await this.client.auth.getSession();
@@ -1381,6 +1390,56 @@ const Auth = {
       this._onIn && this._onIn();
     } else {
       showAuthGate();
+    }
+  },
+
+  /** Če naslov nosi SSO žetona iz huba, ju zamenjaj za sejo (loader je že
+   *  viden — postavi ga pre-paint skript v index.html). Ob neuspehu se tiho
+   *  vrne in start() pokaže običajni prijavni zaslon. */
+  async _trySsoLogin() {
+    const root = document.documentElement;
+    const stopLoader = () => root.classList.remove("sso-pending");
+
+    let raw = "";
+    try { raw = (window.location.hash || "").replace(/^#/, ""); } catch (e) {}
+    if (raw.indexOf("sb_at=") === -1 || raw.indexOf("sb_rt=") === -1) {
+      stopLoader();
+      return;
+    }
+
+    const params = new URLSearchParams(raw);
+    const accessToken = params.get("sb_at");
+    const refreshToken = params.get("sb_rt");
+
+    // Iz naslovne vrstice odstranimo le SSO parametra, ostalo pustimo.
+    params.delete("sb_at");
+    params.delete("sb_rt");
+    const rest = params.toString();
+    try {
+      window.history.replaceState(
+        null, "",
+        window.location.pathname + window.location.search + (rest ? "#" + rest : "")
+      );
+    } catch (e) {}
+
+    if (!accessToken || !refreshToken) { stopLoader(); return; }
+
+    root.classList.add("sso-pending");
+    // Varovalo, če se izmenjava nikoli ne zaključi (Supabase nedosegljiv).
+    const safety = setTimeout(stopLoader, 10000);
+    this._ssoInProgress = true;
+    try {
+      const { error } = await this.client.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+      if (error) console.warn("[sso] prijava iz huba ni uspela:", error);
+    } catch (e) {
+      console.warn("[sso] prijava iz huba ni uspela:", e);
+    } finally {
+      this._ssoInProgress = false;
+      clearTimeout(safety);
+      stopLoader();
     }
   },
 
