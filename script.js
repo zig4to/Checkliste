@@ -187,6 +187,7 @@ function save() {
   const stamp = new Date().toISOString();
   persistLocal(store, stamp);
   Auth.queuePush(store, stamp);
+  queueSharedResync();   // če kaj deliš, osveži deljeno kopijo
 }
 
 /* ---------- Dostop do trenutne checkliste ---------- */
@@ -1856,6 +1857,45 @@ function selectedShareIds() {
   return [...userMenu.shareList.querySelectorAll("input:checked")].map((c) => c.value);
 }
 
+/* ---- Samodejno osveževanje deljene kopije ob urejanju ---- */
+
+let _sharedResyncTimer = null;
+
+/** Ob prijavi naloži, katere svoje checkliste uporabnik trenutno deli. */
+async function loadMySharedIds() {
+  if (!Auth.configured()) { mySharedIds = []; return; }
+  try {
+    const mine = await Auth.myShares();
+    mySharedIds = mine && Array.isArray(mine.checklists) ? mine.checklists.map((c) => c.id) : [];
+  } catch (e) {
+    mySharedIds = [];
+  }
+}
+
+/** Po urejanju z zamikom potisne svežo različico deljenih checklist v oblak. */
+function queueSharedResync() {
+  if (!mySharedIds.length || !Auth.configured() || !navigator.onLine) return;
+  clearTimeout(_sharedResyncTimer);
+  _sharedResyncTimer = setTimeout(resyncShared, 1500);
+}
+
+async function resyncShared() {
+  if (!store || !mySharedIds.length) return;
+  const picked = store.checklists.filter((c) => mySharedIds.includes(c.id));
+  try {
+    if (!picked.length) {
+      // Vse deljene checkliste so bile izbrisane -> odstrani deljeno vrstico.
+      await Auth.clearShares();
+      mySharedIds = [];
+      return;
+    }
+    await Auth.pushShares(picked.map(cleanChecklistForShare));
+    mySharedIds = picked.map((c) => c.id);
+  } catch (e) {
+    console.warn("Samodejna posodobitev deljenih checklist ni uspela.", e);
+  }
+}
+
 function updateShareConfirm() {
   if (!userMenu.shareConfirm) return;
   const n = selectedShareIds().length;
@@ -2201,11 +2241,14 @@ async function bootApp() {
   renderAll({ persist: false });   // stanje je usklajeno; ne prožimo takoj potiska
   updateAccountUI();
   updateSyncBadge();
+  loadMySharedIds();               // za samodejno osveževanje deljene kopije
   maybeInstallPromoAfterLogin();
 }
 
 function teardownApp() {
   store = null;
+  clearTimeout(_sharedResyncTimer);
+  mySharedIds = [];
   closePreview();
   closeUserMenu();
   closeSharedMenu();
