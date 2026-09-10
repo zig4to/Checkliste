@@ -109,6 +109,7 @@
             <svg class="share-caret" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5 6 6.5 11 1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
           <div id="shareOptions" class="share-options" hidden>
+            <p id="shareStatus" class="share-hint"></p>
             <button id="btnShareAll" class="tool-btn" type="button">Deli vse checkliste</button>
             <button id="btnShareSome" class="tool-btn share-toggle" type="button" aria-expanded="false" aria-controls="sharePicker">
               <span>Deli določene …</span>
@@ -118,6 +119,7 @@
               <div id="sharePickerList" class="share-picker-list" role="group" aria-label="Izberi checkliste za deljenje"></div>
               <button id="btnShareSomeConfirm" class="tool-btn primary" type="button" disabled>Deli izbrane</button>
             </div>
+            <button id="btnShareStop" class="tool-btn danger" type="button" hidden>Nehaj deliti</button>
             <p id="shareHint" class="share-hint" hidden></p>
           </div>
         </div>
@@ -269,6 +271,6 @@
   <!-- Supabase SDK (prijava + sinhronizacija checklist) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.js"></script>
   <script src="config.js?v=1"></script>
-  <script src="script.js?v=23"></script>
+  <script src="script.js?v=24"></script>
 </body>
 </html>

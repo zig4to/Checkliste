@@ -1302,6 +1302,7 @@ function registerServiceWorker() {
    ================================================================ */
 
 const SB_TABLE         = "user_checklists";
+const SHARE_TABLE      = "shared_checklists";
 const PUSH_DEBOUNCE_MS  = 1500;
 const PUSH_RETRY_MS     = 4000;
 
@@ -1332,6 +1333,8 @@ const userMenu = {
   sharePicker:  $("#sharePicker"),
   shareList:    $("#sharePickerList"),
   shareConfirm: $("#btnShareSomeConfirm"),
+  shareStop:    $("#btnShareStop"),
+  shareStatus:  $("#shareStatus"),
   shareHint:    $("#shareHint")
 };
 
@@ -1529,6 +1532,53 @@ const Auth = {
     this._pushTimer = setTimeout(() => this._flush(), PUSH_DEBOUNCE_MS);
   },
 
+  /* ---- Deljenje checklist ---- */
+
+  /** Zapiše (ali posodobi) nabor deljenih checklist trenutnega uporabnika. */
+  async pushShares(checklists) {
+    const uid = this.userId();
+    if (!uid) throw new Error("Ni prijave.");
+    const updated_at = new Date().toISOString();
+    const { error } = await this.client
+      .from(SHARE_TABLE)
+      .upsert({ user_id: uid, email: this.email(), checklists, updated_at }, { onConflict: "user_id" });
+    if (error) throw error;
+  },
+
+  /** Odstrani vse deljene checkliste trenutnega uporabnika. */
+  async clearShares() {
+    const uid = this.userId();
+    if (!uid) throw new Error("Ni prijave.");
+    const { error } = await this.client.from(SHARE_TABLE).delete().eq("user_id", uid);
+    if (error) throw error;
+  },
+
+  /** Trenutni deljeni nabor tega uporabnika (ali null). */
+  async myShares() {
+    const uid = this.userId();
+    if (!uid) return null;
+    const { data, error } = await this.client
+      .from(SHARE_TABLE)
+      .select("checklists, updated_at")
+      .eq("user_id", uid)
+      .maybeSingle();
+    if (error) throw error;
+    return data || null;
+  },
+
+  /** Deljeni nabori vseh drugih uporabnikov. */
+  async sharedFeed() {
+    const uid = this.userId();
+    if (!uid) return [];
+    const { data, error } = await this.client
+      .from(SHARE_TABLE)
+      .select("user_id, email, checklists, updated_at")
+      .neq("user_id", uid)
+      .order("updated_at", { ascending: false });
+    if (error) throw error;
+    return (data || []).filter((r) => Array.isArray(r.checklists) && r.checklists.length);
+  },
+
   async syncNow() {
     clearTimeout(this._pushTimer);
     if (!this._pending && store && this.userId()) {
@@ -1673,12 +1723,16 @@ function toggleUserMenu() {
 
 /* ---------- Deljenje checklist ---------- */
 
+/* ID-ji checklist, ki jih uporabnik trenutno deli (za predizbor v izbirniku). */
+let mySharedIds = [];
+
 /** Vrne odseke v zloženo (zaprto) izhodišče. */
 function resetShareUI() {
   if (!userMenu.shareToggle) return;
   collapseShareSection(userMenu.shareToggle, userMenu.shareOptions);
   collapseShareSection(userMenu.shareSome, userMenu.sharePicker);
   if (userMenu.shareHint) { userMenu.shareHint.hidden = true; userMenu.shareHint.textContent = ""; }
+  if (userMenu.shareStatus) userMenu.shareStatus.textContent = "";
 }
 
 function collapseShareSection(toggleBtn, panel) {
@@ -1695,7 +1749,67 @@ function toggleShareSection(toggleBtn, panel, onOpen) {
   if (willOpen && typeof onOpen === "function") onOpen();
 }
 
-/** Izriše seznam checklist s kljukicami za izbor. */
+/** Prijazno sporočilo za napako pri deljenju. */
+function shareErrorText(e) {
+  const msg = (e && (e.message || e.hint || "")) + "";
+  const code = e && e.code;
+  if (code === "42P01" || code === "PGRST205" || /shared_checklists/.test(msg)) {
+    return "Deljenje ni nastavljeno na strežniku (manjka tabela shared_checklists).";
+  }
+  if (!navigator.onLine) return "Deljenje potrebuje internetno povezavo.";
+  return "Deljenje ni uspelo. Poskusi znova.";
+}
+
+/** Očisti checklisto za deljenje: brez stanja odkljukanja in zloženosti. */
+function cleanChecklistForShare(cl) {
+  return {
+    id: cl.id,
+    name: cl.name,
+    categories: (cl.categories || []).map((cat) => ({
+      id: cat.id,
+      name: cat.name,
+      items: (cat.items || []).map((it) => ({ id: it.id, text: it.text }))
+    }))
+  };
+}
+
+/** Osveži prikaz trenutnega stanja deljenja (besedilo + gumb "Nehaj deliti"). */
+async function refreshShareStatus() {
+  const s = userMenu.shareStatus;
+  if (s) { s.textContent = "Preverjam stanje deljenja …"; s.hidden = false; }
+  if (userMenu.shareStop) userMenu.shareStop.hidden = true;
+  if (!Auth.configured()) {
+    if (s) s.textContent = "Deljenje ni na voljo (strežnik ni nastavljen).";
+    mySharedIds = [];
+    return;
+  }
+  try {
+    const mine = await Auth.myShares();
+    mySharedIds = mine && Array.isArray(mine.checklists) ? mine.checklists.map((c) => c.id) : [];
+    if (s) {
+      s.textContent = mySharedIds.length
+        ? `Trenutno deliš ${mySharedIds.length} ${plural(mySharedIds.length, "checklisto", "checklisti", "checkliste", "checklist")}.`
+        : "Trenutno ne deliš ničesar.";
+    }
+    if (userMenu.shareStop) userMenu.shareStop.hidden = mySharedIds.length === 0;
+  } catch (e) {
+    console.warn("Stanja deljenja ni bilo mogoče prebrati.", e);
+    mySharedIds = [];
+    if (s) s.textContent = shareErrorText(e);
+  }
+}
+
+/** Slovensko sklanjanje po številu (1 / 2 / 3-4 / 5+). */
+function plural(n, one, two, few, many) {
+  const m100 = n % 100, m10 = n % 10;
+  if (m100 >= 11 && m100 <= 14) return many;
+  if (m10 === 1) return one;
+  if (m10 === 2) return two;
+  if (m10 === 3 || m10 === 4) return few;
+  return many;
+}
+
+/** Izriše seznam checklist s kljukicami za izbor (predizbrane = trenutno deljene). */
 function renderSharePicker() {
   const list = userMenu.shareList;
   if (!list || !store) return;
@@ -1706,6 +1820,7 @@ function renderSharePicker() {
     const cb = document.createElement("input");
     cb.type = "checkbox";
     cb.value = cl.id;
+    cb.checked = mySharedIds.includes(cl.id);
     cb.addEventListener("change", updateShareConfirm);
     const span = document.createElement("span");
     span.textContent = cl.name;
@@ -1728,21 +1843,58 @@ function updateShareConfirm() {
   userMenu.shareConfirm.textContent = n ? `Deli izbrane (${n})` : "Deli izbrane";
 }
 
-/** Zaenkrat samo namig; dejansko deljenje (povezava/backend) dodamo kasneje. */
-function handleShare(mode, ids) {
-  if (!userMenu.shareHint) return;
-  const count = mode === "all" ? (store ? store.checklists.length : 0) : (ids ? ids.length : 0);
-  const what = mode === "all"
-    ? `vseh ${count} checklist`
-    : `${count} izbranih checklist`;
-  userMenu.shareHint.textContent = `Deljenje ${what} bo na voljo kmalu.`;
-  userMenu.shareHint.hidden = false;
+/** Dejansko deljenje: zapiše nabor v oblak, nato osveži stanje. */
+async function handleShare(mode, ids) {
+  const hint = userMenu.shareHint;
+  if (!hint || !store) return;
+
+  const picked = mode === "all"
+    ? store.checklists.slice()
+    : store.checklists.filter((c) => ids.includes(c.id));
+  if (!picked.length) return;
+
+  hint.hidden = false;
+  hint.textContent = "Deljenje …";
+  const btn = mode === "all" ? userMenu.shareAll : userMenu.shareConfirm;
+  if (btn) btn.disabled = true;
+
+  try {
+    await Auth.pushShares(picked.map(cleanChecklistForShare));
+    hint.textContent = `Deljeno: ${picked.length} ${plural(picked.length, "checklista", "checklisti", "checkliste", "checklist")}.`;
+    await refreshShareStatus();
+  } catch (e) {
+    console.warn("Deljenje ni uspelo.", e);
+    hint.textContent = shareErrorText(e);
+  } finally {
+    if (userMenu.shareAll) userMenu.shareAll.disabled = false;
+    updateShareConfirm();
+  }
+}
+
+/** Preneha deliti vse (izbriše vrstico v oblaku). */
+async function handleStopSharing() {
+  const hint = userMenu.shareHint;
+  if (!hint) return;
+  hint.hidden = false;
+  hint.textContent = "Ustavljam deljenje …";
+  if (userMenu.shareStop) userMenu.shareStop.disabled = true;
+  try {
+    await Auth.clearShares();
+    hint.textContent = "Deljenje ustavljeno.";
+    await refreshShareStatus();
+    if (!userMenu.sharePicker.hidden) renderSharePicker();
+  } catch (e) {
+    console.warn("Deljenja ni bilo mogoče ustaviti.", e);
+    hint.textContent = shareErrorText(e);
+  } finally {
+    if (userMenu.shareStop) userMenu.shareStop.disabled = false;
+  }
 }
 
 function bindShareMenu() {
   if (!userMenu.shareToggle) return;
   userMenu.shareToggle.addEventListener("click", () => {
-    toggleShareSection(userMenu.shareToggle, userMenu.shareOptions);
+    toggleShareSection(userMenu.shareToggle, userMenu.shareOptions, refreshShareStatus);
     if (userMenu.shareOptions.hidden) collapseShareSection(userMenu.shareSome, userMenu.sharePicker);
     if (userMenu.shareHint) userMenu.shareHint.hidden = true;
   });
@@ -1752,6 +1904,7 @@ function bindShareMenu() {
   });
   userMenu.shareAll.addEventListener("click", () => handleShare("all"));
   userMenu.shareConfirm.addEventListener("click", () => handleShare("some", selectedShareIds()));
+  if (userMenu.shareStop) userMenu.shareStop.addEventListener("click", handleStopSharing);
 }
 
 /* ---------- Deljeno z mano ---------- */
@@ -1759,9 +1912,9 @@ function bindShareMenu() {
 function openSharedMenu() {
   if (!sharedMenu.el) return;
   closeUserMenu();
-  renderSharedUsers();
   sharedMenu.el.hidden = false;
   sharedMenu.btn.setAttribute("aria-expanded", "true");
+  loadSharedUsers();
 }
 function closeSharedMenu() {
   if (!sharedMenu.el) return;
@@ -1772,21 +1925,36 @@ function toggleSharedMenu() {
   if (sharedMenu.el.hidden) openSharedMenu(); else closeSharedMenu();
 }
 
-/** Vir: uporabniki, ki so delili svoje checkliste s trenutnim uporabnikom.
-    Zaenkrat prazno; poveze se z zaledjem kasneje.
-    Oblika: [{ email, checklists: [{ id, name }] }] */
-function getSharedFeed() {
-  return [];
+/** Naloži deljene nabore drugih uporabnikov in jih izriše. */
+async function loadSharedUsers() {
+  const box = sharedMenu.list;
+  if (!box) return;
+  box.innerHTML = "";
+  const info = document.createElement("p");
+  info.className = "shared-empty";
+  box.appendChild(info);
+
+  if (!Auth.configured()) { info.textContent = "Deljenje ni na voljo (strežnik ni nastavljen)."; return; }
+  info.textContent = "Nalagam …";
+
+  let feed;
+  try {
+    feed = await Auth.sharedFeed();
+  } catch (e) {
+    console.warn("Deljenih checklist ni bilo mogoče naložiti.", e);
+    info.textContent = shareErrorText(e);
+    return;
+  }
+  renderSharedUsers(feed);
 }
 
 /** Izrise seznam uporabnikov; klik na osebo razpre njene deljene checkliste. */
-function renderSharedUsers() {
+function renderSharedUsers(feed) {
   const box = sharedMenu.list;
   if (!box) return;
   box.innerHTML = "";
 
-  const feed = getSharedFeed();
-  if (!feed.length) {
+  if (!feed || !feed.length) {
     const p = document.createElement("p");
     p.className = "shared-empty";
     p.textContent = "Nihče še ni delil checklist s tabo.";

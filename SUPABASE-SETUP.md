@@ -33,6 +33,45 @@ create policy "update own" on public.user_checklists
 
 Vse tri politike so obvezne — brez `insert` politike prvi vpis novega računa ne uspe.
 
+## 2b. Tabela za deljenje checklist (funkcija "Deli checkliste")
+
+Da začne delovati deljenje (gumb **Deli checkliste** v meniju računa in meni
+**Deljeno z mano**), poženi v **SQL Editor** še:
+
+```sql
+create table public.shared_checklists (
+  user_id    uuid primary key references auth.users on delete cascade,
+  email      text,
+  checklists jsonb not null default '[]'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.shared_checklists enable row level security;
+
+-- vsak PRIJAVLJEN uporabnik vidi vse deljene sezname (zato so e-naslovi
+-- tistih, ki delijo, vidni vsem prijavljenim uporabnikom)
+create policy "shared select all" on public.shared_checklists
+  for select to authenticated using (true);
+
+-- ureja / briše lahko samo svojo vrstico
+create policy "shared insert own" on public.shared_checklists
+  for insert to authenticated with check (auth.uid() = user_id);
+create policy "shared update own" on public.shared_checklists
+  for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "shared delete own" on public.shared_checklists
+  for delete to authenticated using (auth.uid() = user_id);
+```
+
+Kako deluje:
+
+- **Deli vse checkliste** / **Deli določene …** shrani izbrane checkliste
+  (kopijo brez odkljukanj) v tvojo vrstico `shared_checklists`.
+- **Nehaj deliti** izbriše vrstico.
+- **Deljeno z mano** prebere vrstice vseh drugih uporabnikov; klik na osebo
+  razpre imena checklist, ki jih deli.
+- Deljene checkliste so **posnetek** ob deljenju — ko jih pozneje urejaš, se
+  deljena kopija ne posodobi sama; ponovno klikni Deli.
+
 ## 3. Vklopi prijavo z e-pošto in geslom
 
 Supabase → **Authentication → Providers → Email**:
