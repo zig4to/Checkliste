@@ -921,6 +921,8 @@ function bindTopbar() {
       updateSyncBadge();
     });
     userMenu.out.addEventListener("click", () => { closeUserMenu(); Auth.signOut(); });
+    bindShareMenu();
+    bindSharedMenu();
     document.addEventListener("click", (e) => {
       if (userMenu.el.hidden) return;
       if (userMenu.el.contains(e.target) || userMenu.btn.contains(e.target)) return;
@@ -1321,7 +1323,22 @@ const userMenu = {
   email:  $("#userMenuEmail"),
   status: $("#userMenuStatus"),
   sync:   $("#btnSyncNow"),
-  out:    $("#btnSignOut")
+  out:    $("#btnSignOut"),
+  // Deljenje checklist
+  shareToggle:  $("#btnShareToggle"),
+  shareOptions: $("#shareOptions"),
+  shareAll:     $("#btnShareAll"),
+  shareSome:    $("#btnShareSome"),
+  sharePicker:  $("#sharePicker"),
+  shareList:    $("#sharePickerList"),
+  shareConfirm: $("#btnShareSomeConfirm"),
+  shareHint:    $("#shareHint")
+};
+
+const sharedMenu = {
+  btn:  $("#btnShared"),
+  el:   $("#sharedMenu"),
+  list: $("#sharedUsersList")
 };
 
 const Auth = {
@@ -1639,6 +1656,7 @@ function bindAuthGate() {
 
 function openUserMenu() {
   if (!userMenu.el) return;
+  closeSharedMenu();
   updateAccountUI();
   userMenu.el.hidden = false;
   userMenu.btn.setAttribute("aria-expanded", "true");
@@ -1647,9 +1665,185 @@ function closeUserMenu() {
   if (!userMenu.el) return;
   userMenu.el.hidden = true;
   userMenu.btn.setAttribute("aria-expanded", "false");
+  resetShareUI();
 }
 function toggleUserMenu() {
   if (userMenu.el.hidden) openUserMenu(); else closeUserMenu();
+}
+
+/* ---------- Deljenje checklist ---------- */
+
+/** Vrne odseke v zloženo (zaprto) izhodišče. */
+function resetShareUI() {
+  if (!userMenu.shareToggle) return;
+  collapseShareSection(userMenu.shareToggle, userMenu.shareOptions);
+  collapseShareSection(userMenu.shareSome, userMenu.sharePicker);
+  if (userMenu.shareHint) { userMenu.shareHint.hidden = true; userMenu.shareHint.textContent = ""; }
+}
+
+function collapseShareSection(toggleBtn, panel) {
+  if (panel) panel.hidden = true;
+  if (toggleBtn) toggleBtn.setAttribute("aria-expanded", "false");
+}
+
+/** Preklopi razdelek (gumb + panel); ob odprtju izbirnika ga napolni. */
+function toggleShareSection(toggleBtn, panel, onOpen) {
+  if (!panel) return;
+  const willOpen = panel.hidden;
+  panel.hidden = !willOpen;
+  toggleBtn.setAttribute("aria-expanded", willOpen ? "true" : "false");
+  if (willOpen && typeof onOpen === "function") onOpen();
+}
+
+/** Izriše seznam checklist s kljukicami za izbor. */
+function renderSharePicker() {
+  const list = userMenu.shareList;
+  if (!list || !store) return;
+  list.innerHTML = "";
+  store.checklists.forEach((cl) => {
+    const label = document.createElement("label");
+    label.className = "share-picker-item";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.value = cl.id;
+    cb.addEventListener("change", updateShareConfirm);
+    const span = document.createElement("span");
+    span.textContent = cl.name;
+    label.append(cb, span);
+    list.appendChild(label);
+  });
+  updateShareConfirm();
+}
+
+/** Zbrani ID-ji izbranih checklist v izbirniku. */
+function selectedShareIds() {
+  if (!userMenu.shareList) return [];
+  return [...userMenu.shareList.querySelectorAll("input:checked")].map((c) => c.value);
+}
+
+function updateShareConfirm() {
+  if (!userMenu.shareConfirm) return;
+  const n = selectedShareIds().length;
+  userMenu.shareConfirm.disabled = n === 0;
+  userMenu.shareConfirm.textContent = n ? `Deli izbrane (${n})` : "Deli izbrane";
+}
+
+/** Zaenkrat samo namig; dejansko deljenje (povezava/backend) dodamo kasneje. */
+function handleShare(mode, ids) {
+  if (!userMenu.shareHint) return;
+  const count = mode === "all" ? (store ? store.checklists.length : 0) : (ids ? ids.length : 0);
+  const what = mode === "all"
+    ? `vseh ${count} checklist`
+    : `${count} izbranih checklist`;
+  userMenu.shareHint.textContent = `Deljenje ${what} bo na voljo kmalu.`;
+  userMenu.shareHint.hidden = false;
+}
+
+function bindShareMenu() {
+  if (!userMenu.shareToggle) return;
+  userMenu.shareToggle.addEventListener("click", () => {
+    toggleShareSection(userMenu.shareToggle, userMenu.shareOptions);
+    if (userMenu.shareOptions.hidden) collapseShareSection(userMenu.shareSome, userMenu.sharePicker);
+    if (userMenu.shareHint) userMenu.shareHint.hidden = true;
+  });
+  userMenu.shareSome.addEventListener("click", () => {
+    toggleShareSection(userMenu.shareSome, userMenu.sharePicker, renderSharePicker);
+    if (userMenu.shareHint) userMenu.shareHint.hidden = true;
+  });
+  userMenu.shareAll.addEventListener("click", () => handleShare("all"));
+  userMenu.shareConfirm.addEventListener("click", () => handleShare("some", selectedShareIds()));
+}
+
+/* ---------- Deljeno z mano ---------- */
+
+function openSharedMenu() {
+  if (!sharedMenu.el) return;
+  closeUserMenu();
+  renderSharedUsers();
+  sharedMenu.el.hidden = false;
+  sharedMenu.btn.setAttribute("aria-expanded", "true");
+}
+function closeSharedMenu() {
+  if (!sharedMenu.el) return;
+  sharedMenu.el.hidden = true;
+  sharedMenu.btn.setAttribute("aria-expanded", "false");
+}
+function toggleSharedMenu() {
+  if (sharedMenu.el.hidden) openSharedMenu(); else closeSharedMenu();
+}
+
+/** Vir: uporabniki, ki so delili svoje checkliste s trenutnim uporabnikom.
+    Zaenkrat prazno; poveze se z zaledjem kasneje.
+    Oblika: [{ email, checklists: [{ id, name }] }] */
+function getSharedFeed() {
+  return [];
+}
+
+/** Izrise seznam uporabnikov; klik na osebo razpre njene deljene checkliste. */
+function renderSharedUsers() {
+  const box = sharedMenu.list;
+  if (!box) return;
+  box.innerHTML = "";
+
+  const feed = getSharedFeed();
+  if (!feed.length) {
+    const p = document.createElement("p");
+    p.className = "shared-empty";
+    p.textContent = "Nihče še ni delil checklist s tabo.";
+    box.appendChild(p);
+    return;
+  }
+
+  feed.forEach((u) => {
+    const wrap = document.createElement("div");
+    wrap.className = "shared-user";
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "shared-user-btn";
+    btn.setAttribute("aria-expanded", "false");
+    btn.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' +
+      '<span></span>' +
+      '<svg class="share-caret" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5 6 6.5 11 1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    btn.querySelector("span").textContent = u.email || "—";
+
+    const ul = document.createElement("ul");
+    ul.className = "shared-user-lists";
+    ul.hidden = true;
+    (u.checklists || []).forEach((cl) => {
+      const li = document.createElement("li");
+      li.textContent = cl.name;
+      ul.appendChild(li);
+    });
+    if (!ul.children.length) {
+      const li = document.createElement("li");
+      li.textContent = "Ni deljenih checklist.";
+      ul.appendChild(li);
+    }
+
+    btn.addEventListener("click", () => {
+      const willOpen = ul.hidden;
+      ul.hidden = !willOpen;
+      btn.setAttribute("aria-expanded", willOpen ? "true" : "false");
+    });
+
+    wrap.append(btn, ul);
+    box.appendChild(wrap);
+  });
+}
+
+function bindSharedMenu() {
+  if (!sharedMenu.btn) return;
+  sharedMenu.btn.addEventListener("click", (e) => { e.stopPropagation(); toggleSharedMenu(); });
+  document.addEventListener("click", (e) => {
+    if (sharedMenu.el.hidden) return;
+    if (sharedMenu.el.contains(e.target) || sharedMenu.btn.contains(e.target)) return;
+    closeSharedMenu();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeSharedMenu();
+  });
 }
 
 function updateAccountUI() {
@@ -1746,6 +1940,7 @@ async function bootApp() {
 function teardownApp() {
   store = null;
   closeUserMenu();
+  closeSharedMenu();
   if (els.categoryList) els.categoryList.innerHTML = "";
   showAuthGate();
 }
