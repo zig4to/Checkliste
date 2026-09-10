@@ -1881,16 +1881,31 @@ function queueSharedResync() {
 
 async function resyncShared() {
   if (!store || !mySharedIds.length) return;
-  const picked = store.checklists.filter((c) => mySharedIds.includes(c.id));
+
+  // Kaj je deljeno, določa vrstica v oblaku (ne lokalno stanje). Samodejni
+  // resync SAMO osvežuje vsebino - deljenja nikoli sam ne izklopi.
+  let mine;
   try {
-    if (!picked.length) {
-      // Vse deljene checkliste so bile izbrisane -> odstrani deljeno vrstico.
-      await Auth.clearShares();
-      mySharedIds = [];
-      return;
-    }
-    await Auth.pushShares(picked.map(cleanChecklistForShare));
-    mySharedIds = picked.map((c) => c.id);
+    mine = await Auth.myShares();
+  } catch (e) {
+    console.warn("Deljenih checklist ni bilo mogoče prebrati za osvežitev.", e);
+    return;
+  }
+  if (!mine || !Array.isArray(mine.checklists) || !mine.checklists.length) {
+    // Deljenje je bilo izklopljeno (ročno ali na drugi napravi) - ne oživljaj ga.
+    mySharedIds = [];
+    return;
+  }
+
+  const local = new Map(store.checklists.map((c) => [c.id, c]));
+  const merged = mine.checklists.map((shared) => {
+    const cur = local.get(shared.id);
+    return cur ? cleanChecklistForShare(cur) : shared; // ni več lokalno -> ohrani star posnetek
+  });
+
+  try {
+    await Auth.pushShares(merged);
+    mySharedIds = merged.map((c) => c.id);
   } catch (e) {
     console.warn("Samodejna posodobitev deljenih checklist ni uspela.", e);
   }
