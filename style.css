@@ -429,6 +429,9 @@ body {
 }
 .category.collapsed .cat-toggle { transform: rotate(-90deg); }
 .category.collapsed .item-list { display: none; }
+/* Zaprta kategorija: obroba v obliki pilule, kot spustni meniji zgoraj. */
+.category.collapsed,
+.category.collapsed .cat-head { border-radius: 999px; }
 /* Odprta kategorija: glava dobi tanko locilno crto do elementov. */
 .category:not(.collapsed) .cat-head {
   border-bottom: 1px solid var(--line-soft);
@@ -498,6 +501,28 @@ body {
   }
   .item:hover .item-actions,
   .item:focus-within .item-actions { opacity: 1; }
+  /* V nacinu urejanja pozicij so gumbi vedno vidni. */
+  .category.reordering .item-actions { opacity: 1; }
+}
+
+/* Gumbi za pozicijo elementa (↔ ↑ ↓) in za pozicijo kategorije (↑ ↓) so
+   skriti, dokler v glavi kategorije ne vklopimo nacina urejanja pozicij s
+   preklopnim gumbom. */
+.item-actions .act-move-item,
+.item-actions .act-item-up,
+.item-actions .act-item-down,
+.cat-actions .act-up,
+.cat-actions .act-down { display: none; }
+.category.reordering .item-actions .act-move-item,
+.category.reordering .item-actions .act-item-up,
+.category.reordering .item-actions .act-item-down,
+.category.reordering .cat-actions .act-up,
+.category.reordering .cat-actions .act-down { display: inline-flex; }
+
+/* Aktiven preklopni gumb v glavi kategorije. */
+.cat-actions .act-reorder-items.is-active {
+  background: var(--card-2);
+  color: var(--text);
 }
 
 /* Elementi */
@@ -814,6 +839,28 @@ body {
   .toolbar .tool-btn { flex: 1 1 auto; padding: 11px 13px; }
   .picker-actions .tool-btn { padding: 11px 13px; }
 
+  /* .picker-actions ima flex-wrap: wrap in gap: 6px.
+     Prva vrstica: dodaj Checklisto + dodaj Kategorijo, 50-50.
+     Druga vrstica: Preimenuj / Kopiraj / Izbrisi, tretjine.
+     Fiksna flex-osnova poskrbi za prelom (2 na 100 % -> tretji se prelomi). */
+  .picker-actions #btnNewChecklist,
+  .picker-actions #btnAddCategory,
+  .picker-actions #btnRenameChecklist,
+  .picker-actions #btnDuplicateChecklist,
+  .picker-actions #btnDeleteChecklist {
+    min-width: 0;
+    padding-left: 4px;
+    padding-right: 4px;
+    font-size: 13px;
+    letter-spacing: -.01em;
+    white-space: nowrap;
+  }
+  .picker-actions #btnNewChecklist,
+  .picker-actions #btnAddCategory { flex: 1 1 calc(50% - 3px); }
+  .picker-actions #btnRenameChecklist,
+  .picker-actions #btnDuplicateChecklist,
+  .picker-actions #btnDeleteChecklist { flex: 1 1 calc(33.333% - 4px); }
+
   /* Napredek ima nad sabo nekaj zraka, ko je viden. */
   .progress-wrap { margin-top: 10px; }
 
@@ -846,10 +893,13 @@ body {
   .item { padding: 9px 6px 9px 10px; flex-wrap: wrap; row-gap: 6px; }
   .chk { width: 22px; height: 22px; }
 
-  /* Ime elementa v svoji vrstici, akcije se prelomijo pod njo - sicer se
-     ob 5 vedno vidnih gumbih besedilo stisne v navpicen stolpec crk. */
-  .item-check { flex: 1 1 100%; }
+  /* Ime elementa ter gumba za urejanje in izbris so v isti vrsti. */
+  .item-check { flex: 1 1 auto; }
   .item-actions { flex: 0 0 auto; margin-left: auto; }
+
+  /* V nacinu urejanja pozicij je gumbov pet - takrat ime dobi svojo
+     vrstico, sicer se besedilo stisne v navpicen stolpec crk. */
+  .category.reordering .item-check { flex-basis: 100%; }
 
   /* Zaprta kategorija: skrij tudi znacko s stevilom in gumbe za urejanje */
   .category.collapsed .cat-progress,
@@ -857,10 +907,14 @@ body {
     display: none;
   }
 
-  /* Zaprta kategorija: naslov na sredini vrstice */
+  /* Zaprta kategorija: naslov na sredini vrstice.
+     Umakni nevidni prelom, sicer doda prazno drugo vrstico + row-gap in
+     besedilo ni navpicno centrirano v piluli. */
   .category.collapsed .cat-head {
     justify-content: center;
+    flex-wrap: nowrap;
   }
+  .category.collapsed .cat-head::after { content: none; }
   .category.collapsed .cat-name {
     flex: 0 1 auto;
     text-align: center;

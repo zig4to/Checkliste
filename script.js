@@ -179,6 +179,10 @@ function normalizeStore(raw) {
 function save() {
   const key = userStoreKey();
   if (!store || !key) return;
+  // Nazadnje urejano (aktivno) checklisto premakni na vrh seznama. Vse poti
+  // nalaganja odprejo checklists[0], zato se po osvežitvi odpre prav ta.
+  const i = store.checklists.findIndex((c) => c.id === store.activeId);
+  if (i > 0) store.checklists.unshift(store.checklists.splice(i, 1)[0]);
   const stamp = new Date().toISOString();
   persistLocal(store, stamp);
   Auth.queuePush(store, stamp);
@@ -188,6 +192,10 @@ function save() {
 
 const getActive = () => store.checklists.find((c) => c.id === store.activeId) || store.checklists[0];
 const getCat    = (cl, catId) => cl.categories.find((c) => c.id === catId);
+
+/* Kategorije, ki imajo trenutno vklopljen nacin urejanja pozicij elementov.
+   Zacasno stanje (ne shranjuje se); ohrani se cez ponoven izris. */
+const reorderCats = new Set();
 
 /* ---------- Reference na DOM ---------- */
 
@@ -324,6 +332,13 @@ function renderCategories() {
     node.dataset.catId = cat.id;
     if (cat.collapsed) node.classList.add("collapsed");
 
+    // Ohrani vklopljen nacin urejanja pozicij elementov cez ponoven izris.
+    if (reorderCats.has(cat.id)) {
+      node.classList.add("reordering");
+      node.querySelector(".act-reorder-items").classList.add("is-active");
+      node.querySelector(".act-reorder-items").setAttribute("aria-pressed", "true");
+    }
+
     node.querySelector(".cat-name").textContent = cat.name;
 
     // Napredek kategorije
@@ -451,6 +466,7 @@ async function deleteCategory(catId) {
   );
   if (!ok) return;
   cl.categories = cl.categories.filter((c) => c.id !== catId);
+  reorderCats.delete(catId);
   renderAll();
 }
 
@@ -468,6 +484,17 @@ function toggleCollapse(catId, node) {
   cat.collapsed = !cat.collapsed;
   node.classList.toggle("collapsed", cat.collapsed);
   save();
+}
+
+/** Vklopi / izklopi prikaz gumbov za pozicijo elementov (↔ ↑ ↓) pri vseh
+    vnosih dane kategorije. Stanje je zacasno (se ne shranjuje). */
+function toggleReorderItems(catId, node, btn) {
+  const on = !reorderCats.has(catId);
+  if (on) reorderCats.add(catId);
+  else reorderCats.delete(catId);
+  node.classList.toggle("reordering", on);
+  btn.classList.toggle("is-active", on);
+  btn.setAttribute("aria-pressed", on ? "true" : "false");
 }
 
 /* ================================================================
@@ -1005,6 +1032,7 @@ function bindCategoryList() {
     if (btn.classList.contains("act-rename-cat"))return renameCategory(catId);
     if (btn.classList.contains("act-up"))        return moveCategory(catId, -1);
     if (btn.classList.contains("act-down"))      return moveCategory(catId, 1);
+    if (btn.classList.contains("act-reorder-items")) return toggleReorderItems(catId, catNode, btn);
     if (btn.classList.contains("act-del-cat"))   return deleteCategory(catId);
 
     // Akcije elementa
