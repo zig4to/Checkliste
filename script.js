@@ -177,6 +177,7 @@ function normalizeStore(raw) {
 /** Shrani celotno stanje: lokalna kopija + potisk v oblak (z zamikom).
    Kliče se ob vsaki spremembi (prek renderAll). */
 function save() {
+  if (preview) return;               // predogled tuje checkliste se ne shranjuje
   const key = userStoreKey();
   if (!store || !key) return;
   // Nazadnje urejano (aktivno) checklisto premakni na vrh seznama. Vse poti
@@ -190,7 +191,13 @@ function save() {
 
 /* ---------- Dostop do trenutne checkliste ---------- */
 
-const getActive = () => store.checklists.find((c) => c.id === store.activeId) || store.checklists[0];
+/* Predogled deljene checkliste druge osebe (samo za ogled; se ne shranjuje). */
+let preview = null; // { checklist, email }
+
+/** Uporabnikova lastna aktivna checklista (ne glede na predogled). */
+const ownActive = () => store.checklists.find((c) => c.id === store.activeId) || store.checklists[0];
+
+const getActive = () => preview ? preview.checklist : ownActive();
 const getCat    = (cl, catId) => cl.categories.find((c) => c.id === catId);
 
 /* Kategorije, ki imajo trenutno vklopljen nacin urejanja pozicij elementov.
@@ -280,7 +287,7 @@ modal.input.addEventListener("keydown", (e) => {
 
 /** Osveži lasten spustni meni checklist (sprožilec + seznam možnosti). */
 function renderSelect() {
-  const active = getActive();
+  const active = ownActive();
   els.clLabel.textContent = active ? active.name : "—";
 
   els.clList.innerHTML = "";
@@ -321,9 +328,12 @@ function renderCategories() {
   const cl = getActive();
   els.categoryList.innerHTML = "";
 
+  if (preview) els.categoryList.appendChild(buildPreviewBar());
+
   if (!cl.categories.length) {
-    els.categoryList.innerHTML =
-      `<div class="empty-state"><p>Ni kategorij.</p><p>Dodaj prvo kategorijo z gumbom «＋ Kategorija».</p></div>`;
+    els.categoryList.insertAdjacentHTML("beforeend", preview
+      ? `<div class="empty-state"><p>Ta checklista nima kategorij.</p></div>`
+      : `<div class="empty-state"><p>Ni kategorij.</p><p>Dodaj prvo kategorijo z gumbom «＋ Kategorija».</p></div>`);
     return;
   }
 
@@ -596,6 +606,7 @@ async function moveItemToCategory(catId, itemId) {
    ================================================================ */
 
 function setAll(done) {
+  if (preview) return;
   getActive().categories.forEach((cat) => cat.items.forEach((it) => (it.done = done)));
   renderAll();
 }
@@ -892,24 +903,27 @@ function bindTopbar() {
   els.clList.addEventListener("click", (e) => {
     const btn = e.target.closest(".cl-option");
     if (!btn) return;
+    closePreview();
     store.activeId = btn.dataset.id;
     els.search.value = "";
     closeChecklistMenu();
     renderAll();
   });
 
-  $("#btnNewChecklist").addEventListener("click", newChecklist);
-  $("#btnRenameChecklist").addEventListener("click", renameChecklist);
-  $("#btnDuplicateChecklist").addEventListener("click", duplicateChecklist);
-  $("#btnDeleteChecklist").addEventListener("click", deleteChecklist);
+  // Dejanja nad lastnimi checklistami najprej zapustijo morebitni predogled.
+  const own = (fn) => () => { closePreview(); fn(); };
+  $("#btnNewChecklist").addEventListener("click", own(newChecklist));
+  $("#btnRenameChecklist").addEventListener("click", own(renameChecklist));
+  $("#btnDuplicateChecklist").addEventListener("click", own(duplicateChecklist));
+  $("#btnDeleteChecklist").addEventListener("click", own(deleteChecklist));
 
   $("#btnCheckAll").addEventListener("click", () => setAll(true));
   $("#btnClearAll").addEventListener("click", () => setAll(false));
-  $("#btnAddCategory").addEventListener("click", addCategory);
+  $("#btnAddCategory").addEventListener("click", own(addCategory));
   $("#btnExportActive").addEventListener("click", exportActive);
   $("#btnExportAll").addEventListener("click", exportAll);
-  $("#btnImport").addEventListener("click", () => els.importFile.click());
-  $("#btnScan").addEventListener("click", startScan);
+  $("#btnImport").addEventListener("click", () => { closePreview(); els.importFile.click(); });
+  $("#btnScan").addEventListener("click", own(startScan));
   $("#btnTheme").addEventListener("click", toggleTheme);
 
   // Račun (prijava / sinhronizacija)
@@ -1004,7 +1018,7 @@ function bindTopbar() {
     closeAllPanels();
   });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") { closeAllPanels(); closeChecklistMenu(); }
+    if (e.key === "Escape") { closeAllPanels(); closeChecklistMenu(); closePreview(); }
   });
 }
 
@@ -1027,6 +1041,12 @@ function bindCategoryList() {
     }
 
     if (!btn) return;
+
+    // V predogledu tuje checkliste je dovoljeno le razpiranje/skrivanje kategorij.
+    if (preview) {
+      if (btn.classList.contains("cat-toggle")) toggleCollapse(catId, catNode);
+      return;
+    }
 
     // Akcije kategorije
     if (btn.classList.contains("cat-toggle"))    return toggleCollapse(catId, catNode);
@@ -1981,11 +2001,17 @@ function renderSharedUsers(feed) {
     ul.hidden = true;
     (u.checklists || []).forEach((cl) => {
       const li = document.createElement("li");
-      li.textContent = cl.name;
+      const open = document.createElement("button");
+      open.type = "button";
+      open.className = "shared-cl-btn";
+      open.textContent = cl.name;
+      open.addEventListener("click", () => openPreview(cl, u.email));
+      li.appendChild(open);
       ul.appendChild(li);
     });
     if (!ul.children.length) {
       const li = document.createElement("li");
+      li.className = "shared-cl-empty";
       li.textContent = "Ni deljenih checklist.";
       ul.appendChild(li);
     }
@@ -1999,6 +2025,55 @@ function renderSharedUsers(feed) {
     wrap.append(btn, ul);
     box.appendChild(wrap);
   });
+}
+
+/* ---------- Predogled deljene checkliste ---------- */
+
+/** Vrstica nad vsebino: čigava checklista je v predogledu + gumb za izhod. */
+function buildPreviewBar() {
+  const bar = document.createElement("div");
+  bar.className = "preview-bar";
+
+  const txt = document.createElement("div");
+  txt.className = "preview-bar-text";
+  const label = document.createElement("span");
+  label.className = "preview-bar-label";
+  label.textContent = "Predogled deljene checkliste";
+  const meta = document.createElement("span");
+  meta.className = "preview-bar-meta";
+  const strong = document.createElement("strong");
+  strong.textContent = preview.checklist.name;
+  meta.append(strong);
+  if (preview.email) meta.append(document.createTextNode(" · " + preview.email));
+  txt.append(label, meta);
+
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "tool-btn preview-close";
+  close.textContent = "Zapri predogled";
+  close.addEventListener("click", closePreview);
+
+  bar.append(txt, close);
+  return bar;
+}
+
+/** Odpre checklisto druge osebe kot predogled v glavnem prikazu (samo ogled). */
+function openPreview(checklist, email) {
+  if (!checklist) return;
+  preview = { checklist: clone(checklist), email: email || "" };
+  document.body.classList.add("preview-mode");
+  els.search.value = "";
+  closeSharedMenu();
+  renderAll({ persist: false });
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/** Zapre predogled in vrne uporabnikovo lastno aktivno checklisto. */
+function closePreview() {
+  if (!preview) return;
+  preview = null;
+  document.body.classList.remove("preview-mode");
+  if (store) renderAll({ persist: false });
 }
 
 function bindSharedMenu() {
@@ -2107,6 +2182,7 @@ async function bootApp() {
 
 function teardownApp() {
   store = null;
+  closePreview();
   closeUserMenu();
   closeSharedMenu();
   if (els.categoryList) els.categoryList.innerHTML = "";

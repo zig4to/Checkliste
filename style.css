@@ -1173,16 +1173,69 @@ body.auth-locked .content { display: none; }
   gap: 2px;
 }
 .shared-user-lists[hidden] { display: none !important; }
-.shared-user-lists li {
+.shared-user-lists li { border-left: 2px solid var(--line-soft); }
+.shared-cl-empty {
   font-size: 13px;
   color: var(--text-soft);
-  padding: 5px 8px;
-  border-left: 2px solid var(--line-soft);
+  padding: 6px 8px;
+}
+.shared-cl-btn {
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: var(--accent-strong);
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 8px;
+  border-radius: 0 6px 6px 0;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+@media (hover: hover) {
+  .shared-cl-btn:hover { background: var(--card-2); }
 }
 
 @media (max-width: 719px) {
   .user-menu { right: 12px; top: calc(100% + 6px); }
 }
+
+/* ---- Predogled deljene checkliste ---- */
+.preview-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: var(--gap);
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--accent) 10%, var(--card));
+}
+.preview-bar-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.preview-bar-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--accent-strong);
+}
+.preview-bar-meta {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.preview-bar-meta strong { font-weight: 700; }
+.preview-close { flex: 0 0 auto; }
+
+/* V predogledu je checklista samo za ogled - skrij gumbe za urejanje. */
+body.preview-mode .cat-actions,
+body.preview-mode .item-actions { display: none !important; }
 
 /* Stanje sinhronizacije na gumbu računa */
 .user-btn.is-syncing { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
