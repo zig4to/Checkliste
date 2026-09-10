@@ -151,6 +151,39 @@ body {
 }
 .user-btn svg { width: 19px; height: 19px; display: block; }
 .user-btn:active { transform: scale(.94); }
+
+/* Gumb "Deljeno" (odpre meni z deljenimi checklistami): ikona + besedilo. */
+.shared-btn {
+  width: auto;
+  gap: 7px;
+  padding: 0 14px;
+}
+.shared-btn-label {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -.005em;
+  white-space: nowrap;
+}
+
+/* Gumb "Deljeno" zadržano utripa z zeleno, da pritegne pozornost. */
+@keyframes shared-pulse {
+  0%, 100% {
+    border-color: var(--line);
+    box-shadow: var(--shadow-sm);
+  }
+  50% {
+    border-color: color-mix(in srgb, var(--accent) 70%, var(--line));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 15%, transparent), var(--shadow-sm);
+  }
+}
+.shared-btn {
+  animation: shared-pulse 2.6s ease-in-out infinite;
+}
+.shared-btn:hover,
+.shared-btn[aria-expanded="true"] { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .shared-btn { animation: none; }
+}
 @media (hover: hover) {
   .user-btn:hover {
     background: var(--card-2);
@@ -799,11 +832,20 @@ body {
     top: 10px;
     right: 52px;
     z-index: 1;
-    width: 32px;
+    width: auto;
     height: 32px;
+    padding: 0 10px;
+    gap: 6px;
   }
+  .shared-btn-label { font-size: 13px; }
   .user-btn svg,
   .shared-btn svg { width: 17px; height: 17px; }
+
+  /* Na zelo ozkih zaslonih besedilo skrij, da se ne prekriva z naslovom. */
+  @media (max-width: 359px) {
+    .shared-btn { width: 32px; padding: 0; }
+    .shared-btn-label { display: none; }
+  }
 
   .brand-title { font-size: 17px; }
   /* Manjsa ikona ob naslovu na telefonu. */
@@ -1231,6 +1273,7 @@ body.auth-locked .content { display: none; }
   overflow-wrap: anywhere;
 }
 .preview-bar-meta strong { font-weight: 700; }
+.preview-save,
 .preview-close { flex: 0 0 auto; }
 
 /* V predogledu je checklista samo za ogled - skrij gumbe za urejanje. */

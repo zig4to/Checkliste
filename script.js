@@ -2047,14 +2047,38 @@ function buildPreviewBar() {
   if (preview.email) meta.append(document.createTextNode(" · " + preview.email));
   txt.append(label, meta);
 
+  const save = document.createElement("button");
+  save.type = "button";
+  save.className = "tool-btn primary preview-save";
+  save.textContent = "Shrani checklisto";
+  save.addEventListener("click", savePreviewToMyLists);
+
   const close = document.createElement("button");
   close.type = "button";
   close.className = "tool-btn preview-close";
   close.textContent = "Zapri predogled";
   close.addEventListener("click", closePreview);
 
-  bar.append(txt, close);
+  bar.append(txt, save, close);
   return bar;
+}
+
+/** Shrani checklisto iz predogleda med uporabnikove lastne (in jo odpre). */
+function savePreviewToMyLists() {
+  if (!preview || !store) return;
+  const copy = clone(preview.checklist);
+  copy.id = uid("cl");
+  copy.name = preview.checklist.name;
+  reassignIds(copy);
+  copy.categories.forEach((cat) => {
+    cat.collapsed = false;
+    cat.items.forEach((it) => { it.done = false; });
+  });
+  store.checklists.push(copy);
+  store.activeId = copy.id;
+  preview = null;
+  document.body.classList.remove("preview-mode");
+  renderAll(); // shrani lokalno + sinhronizira, premakne na vrh seznama
 }
 
 /** Odpre checklisto druge osebe kot predogled v glavnem prikazu (samo ogled). */
