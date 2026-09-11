@@ -924,7 +924,6 @@ function bindTopbar() {
   $("#btnExportActive").addEventListener("click", exportActive);
   $("#btnExportAll").addEventListener("click", exportAll);
   $("#btnImport").addEventListener("click", () => { closePreview(); els.importFile.click(); });
-  $("#btnScan").addEventListener("click", own(startScan));
   $("#btnTheme").addEventListener("click", toggleTheme);
 
   // Račun (prijava / sinhronizacija)

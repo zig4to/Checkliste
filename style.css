@@ -388,11 +388,11 @@ body {
   box-shadow: var(--ring);
 }
 
-/* Orodna vrstica */
+/* Orodna vrstica: 2 stolpca (50/50), gumbi se zlagajo v vrste */
 .toolbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
-  flex-wrap: wrap;
 }
 
 .tool-btn {
@@ -791,8 +791,7 @@ body {
     visibility: visible;
     transform: translateY(0) scale(1);
   }
-  .panel .picker-actions,
-  .panel .toolbar { flex-wrap: wrap; }
+  .panel .picker-actions { flex-wrap: wrap; }
   .panel .search-wrap { margin-bottom: 8px; }
   /* Locilna crta pod iskalnikom loci iskanje od orodij. */
   .panel .toolbar {
@@ -800,7 +799,6 @@ body {
     padding-top: 10px;
     margin-top: 10px;
   }
-  .panel .toolbar .tool-btn { flex: 1 1 auto; }
 }
 
 @media (max-width: 719px) {
@@ -843,11 +841,6 @@ body {
   .user-btn svg,
   .shared-btn svg { width: 17px; height: 17px; }
 
-  /* Na zelo ozkih zaslonih besedilo skrij, da se ne prekriva z naslovom. */
-  @media (max-width: 359px) {
-    .shared-btn { width: 32px; padding: 0; }
-    .shared-btn-label { display: none; }
-  }
 
   .brand-title { font-size: 17px; }
   /* Manjsa ikona ob naslovu na telefonu. */
@@ -890,7 +883,7 @@ body {
   /* Vsebina panelov naj se lepo zlaga navpicno */
   .panel .picker-actions { flex-wrap: wrap; }
   .panel .toolbar { margin-top: 8px; }
-  .toolbar .tool-btn { flex: 1 1 auto; padding: 11px 13px; }
+  .toolbar .tool-btn { padding: 11px 13px; }
   .picker-actions .tool-btn { padding: 11px 13px; }
 
   /* .picker-actions ima flex-wrap: wrap in gap: 6px.
@@ -1096,6 +1089,9 @@ body.auth-locked .content { display: none; }
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+/* Vsebina tega menija se naloži asinhrono ("Nalagam …" -> dejanski seznam) -
+   stabilna minimalna sirina prepreci viden skok/utrip ob odpiranju. */
+.shared-menu { min-width: 240px; }
 .user-menu-email {
   margin: 0;
   font-size: 14px;
