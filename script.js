@@ -323,6 +323,8 @@ function renderSelect() {
     }
     els.clList.appendChild(btn);
   });
+
+  updateGroupRealtimeSubscription();
 }
 
 /** Izračuna napredek (opravljeni / vsi) za dano checklisto. */
@@ -2044,11 +2046,71 @@ async function markActiveAsGroup() {
   try {
     await Auth.pushGroupChecklists([cleanChecklistForShare(cl)]);
     if (!myGroupIds.includes(cl.id)) myGroupIds.push(cl.id);
+    renderSelect(); // takoj pokazi modro ikonco + zazeni zivo narocnino
     alert(`"${cl.name}" je zdaj skupinska checklista - vidna bo v meniju "Deljeno" → "Skupinske checkliste", spremembe pa se bodo samodejno posodabljale.`);
   } catch (e) {
     console.warn("Checkliste ni bilo mogoče narediti skupinske.", e);
     alert(shareErrorText(e));
   }
+}
+
+/* ---- Zivo posodabljanje odprte skupinske checkliste (Supabase Realtime) ----
+   Ko je aktivna checklista skupinska, se narocimo na spremembe njene vrstice
+   v group_checklists - ko jo kdo drug ureja (in njegov potisk pride skozi),
+   se sprememba takoj (brez osvezitve strani) prikaze tudi tukaj. */
+let groupRealtimeChannel = null;
+let groupRealtimeId = null;
+
+function updateGroupRealtimeSubscription() {
+  if (!store || !Auth.configured() || !Auth.client) return;
+  const activeId = store.activeId;
+  const shouldSubscribe = !!(activeId && myGroupIds.includes(activeId));
+  const targetId = shouldSubscribe ? activeId : null;
+
+  if (groupRealtimeId === targetId) return; // ze pravilno narocen (ali nepotrebno)
+
+  if (groupRealtimeChannel) {
+    Auth.client.removeChannel(groupRealtimeChannel);
+    groupRealtimeChannel = null;
+    groupRealtimeId = null;
+  }
+  if (!targetId) return;
+
+  groupRealtimeId = targetId;
+  groupRealtimeChannel = Auth.client
+    .channel(`group_checklist_${targetId}`)
+    .on("postgres_changes",
+      { event: "UPDATE", schema: "public", table: GROUP_TABLE, filter: `id=eq.${targetId}` },
+      (payload) => applyRemoteGroupUpdate(payload.new))
+    .subscribe();
+}
+
+function closeGroupRealtimeSubscription() {
+  if (groupRealtimeChannel && Auth.client) Auth.client.removeChannel(groupRealtimeChannel);
+  groupRealtimeChannel = null;
+  groupRealtimeId = null;
+}
+
+/** Vgradi sveze prejeto vsebino skupinske checkliste - ohrani lokalno stanje
+ *  odkljukanosti/zlozenosti za elemente/kategorije, ki se vedno obstajajo. */
+function applyRemoteGroupUpdate(row) {
+  if (!store || preview || !row) return;
+  const idx = store.checklists.findIndex((c) => c.id === row.id);
+  if (idx === -1) return;
+
+  const incoming = normalizeChecklist(row.checklist);
+  const current = store.checklists[idx];
+  const catState = new Map(current.categories.map((c) => [c.id, c]));
+  incoming.categories.forEach((cat) => {
+    const oldCat = catState.get(cat.id);
+    cat.collapsed = oldCat ? oldCat.collapsed : false;
+    const itemState = oldCat ? new Map(oldCat.items.map((it) => [it.id, it])) : new Map();
+    cat.items.forEach((it) => { it.done = itemState.has(it.id) ? itemState.get(it.id).done : false; });
+  });
+
+  store.checklists[idx] = incoming;
+  persistLocal(store, new Date().toISOString());
+  renderAll({ persist: false });
 }
 
 function updateShareConfirm() {
@@ -2536,6 +2598,7 @@ function teardownApp() {
   mySharedIds = [];
   clearTimeout(_groupResyncTimer);
   myGroupIds = [];
+  closeGroupRealtimeSubscription();
   closePreview();
   closeUserMenu();
   closeSharedMenu();

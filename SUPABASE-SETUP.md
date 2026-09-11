@@ -128,7 +128,15 @@ $$;
 create trigger group_checklists_keep_creator
 before insert or update on public.group_checklists
 for each row execute function public.group_checklists_keep_creator();
+
+-- Zivo posodabljanje (Realtime): brez tega aplikacija spremembe zazna sele
+-- ob naslednji osvezitvi/ponovnem odprtju, ne pa takoj pri vseh, ki imajo
+-- checklisto trenutno odprto.
+alter publication supabase_realtime add table public.group_checklists;
 ```
+
+> Če zgornji `alter publication` javi napako "already member of publication",
+> je to v redu - pomeni, da je Realtime za to tabelo že vklopljen.
 
 Kako deluje:
 
@@ -143,6 +151,12 @@ Kako deluje:
   Ob prvi shrambi po odprtju postane skupinska tudi zanj - njegove spremembe
   se prav tako samodejno potiskajo naprej, ustvarjalec pa (po zaslugi
   sprozilca zgoraj) ostane isti, tudi ce jo ureja vec razlicnih ljudi.
+- **Zivo posodabljanje**: dokler ima kdo skupinsko checklisto odprto kot
+  aktivno, je narocen na spremembe njene vrstice (Supabase Realtime). Ko
+  jo nekdo drug ureja in njegov potisk pride skozi (z istim ~1,5s zamikom
+  kot sicer), se sprememba pri vseh, ki jo imajo odprto, prikaze takoj -
+  brez osvezitve strani. Osebne kljukice/zlozenost pri tem ostanejo
+  nedotaknjene.
 - V seznamu checklist (izbirnik zgoraj) ima vsaka skupinska checklista
   modro ikonco ob imenu.
 - Osebno stanje odkljukanosti elementov se NE sinhronizira med uporabniki
