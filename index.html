@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-title" content="Nam Puzabu" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="style.css?v=47" />
+  <link rel="stylesheet" href="style.css?v=50" />
   <script>
     /* Prijava iz huba (TomsStudios): če naslov nosi #sb_at&sb_rt, pokaži
        nalagalnik namesto prijavnega obrazca, dokler se prijava ne izvede.
@@ -71,61 +71,84 @@
         <h1 class="brand-title">Nam Puzabu</h1>
       </div>
 
-      <!-- Deljeno z mano: uporabniki, ki so delili svoje checkliste -->
-      <button id="btnShared" class="user-btn shared-btn" type="button" title="Deljeno z mano" aria-label="Deljeno z mano" aria-expanded="false">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-          <circle cx="9" cy="7" r="4"/>
-          <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-        </svg>
-        <span class="shared-btn-label">Deljeno</span>
-      </button>
+      <!-- Deljeno z mano: uporabniki, ki so delili svoje checkliste.
+           Gumb + meni sta ovita skupaj, da je meni pozicioniran glede na gumb
+           (ne glede na cel .topbar-inner), enako kot pri .cl-picker/.cl-menu. -->
+      <div class="user-menu-wrap shared-wrap">
+        <button id="btnShared" class="user-btn shared-btn" type="button" title="Deljeno z mano" aria-label="Deljeno z mano" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <span class="shared-btn-label">Deljeno</span>
+        </button>
 
-      <!-- Meni "Deljeno z mano" (odpre se ob kliku na ikono skupine) -->
-      <div id="sharedMenu" class="user-menu shared-menu" hidden>
-        <p class="user-menu-email">Deljeno z mano</p>
-        <div id="sharedUsersList" class="shared-users"></div>
+        <!-- Meni "Deljeno z mano" (odpre se ob kliku na ikono skupine) -->
+        <div id="sharedMenu" class="user-menu shared-menu" hidden>
+          <p class="user-menu-email">Deljeno z mano</p>
+          <div id="sharedUsersList" class="shared-users"></div>
+        </div>
       </div>
 
       <!-- Uporabniski racun: v vrstici z naslovom, poravnan cisto desno -->
-      <button id="btnUser" class="user-btn" type="button" title="Uporabniški račun" aria-label="Uporabniški račun" aria-expanded="false">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-          <circle cx="12" cy="7" r="4"/>
-        </svg>
-      </button>
+      <div class="user-menu-wrap account-wrap">
+        <button id="btnUser" class="user-btn" type="button" title="Uporabniški račun" aria-label="Uporabniški račun" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+        </button>
 
-      <!-- Meni računa (odpre se ob kliku na ikono uporabnika) -->
-      <div id="userMenu" class="user-menu" hidden>
-        <p class="user-menu-email" id="userMenuEmail">&nbsp;</p>
-        <p class="user-menu-status" id="userMenuStatus">&nbsp;</p>
-        <button id="btnSyncNow" class="tool-btn" type="button">↻ Sinhroniziraj zdaj</button>
+        <!-- Meni računa (odpre se ob kliku na ikono uporabnika) -->
+        <div id="userMenu" class="user-menu" hidden>
+          <p class="user-menu-email" id="userMenuEmail">&nbsp;</p>
+          <p class="user-menu-status" id="userMenuStatus">
+            <span id="userMenuStatusText">&nbsp;</span>
+            <svg id="userMenuStatusCheck" class="sync-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden>
+              <path d="M20 6 9 17l-5-5"/>
+            </svg>
+          </p>
+          <button id="btnSyncNow" class="tool-btn" type="button">↻ Sinhroniziraj zdaj</button>
 
-        <!-- Deljenje checklist -->
-        <div class="share-block">
-          <button id="btnShareToggle" class="tool-btn share-toggle" type="button" aria-expanded="false" aria-controls="shareOptions">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4"/><path d="m15.4 6.5-6.8 4"/></svg>
-            <span>Deli checkliste</span>
-            <svg class="share-caret" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5 6 6.5 11 1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-          <div id="shareOptions" class="share-options" hidden>
-            <p id="shareStatus" class="share-hint"></p>
-            <button id="btnShareAll" class="tool-btn" type="button">Deli vse checkliste</button>
-            <button id="btnShareSome" class="tool-btn share-toggle" type="button" aria-expanded="false" aria-controls="sharePicker">
-              <span>Deli določene …</span>
+          <!-- Deljenje checklist -->
+          <div class="share-block">
+            <button id="btnShareToggle" class="tool-btn share-toggle" type="button" aria-expanded="false" aria-controls="shareOptions">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4"/><path d="m15.4 6.5-6.8 4"/></svg>
+              <span>Deli checkliste</span>
               <svg class="share-caret" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5 6 6.5 11 1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
-            <div id="sharePicker" class="share-picker" hidden>
-              <div id="sharePickerList" class="share-picker-list" role="group" aria-label="Izberi checkliste za deljenje"></div>
-              <button id="btnShareSomeConfirm" class="tool-btn primary" type="button" disabled>Deli izbrane</button>
+            <div id="shareOptions" class="share-options" hidden>
+              <p id="shareStatus" class="share-hint"></p>
+              <button id="btnShareAll" class="tool-btn" type="button">Deli vse checkliste</button>
+              <button id="btnShareSome" class="tool-btn share-toggle" type="button" aria-expanded="false" aria-controls="sharePicker">
+                <span>Deli določene …</span>
+                <svg class="share-caret" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5 6 6.5 11 1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <div id="sharePicker" class="share-picker" hidden>
+                <div id="sharePickerList" class="share-picker-list" role="group" aria-label="Izberi checkliste za deljenje"></div>
+                <button id="btnShareSomeConfirm" class="tool-btn primary" type="button" disabled>Deli izbrane</button>
+              </div>
+              <button id="btnShareStop" class="tool-btn danger" type="button" hidden>Nehaj deliti</button>
+              <p id="shareHint" class="share-hint" hidden></p>
             </div>
-            <button id="btnShareStop" class="tool-btn danger" type="button" hidden>Nehaj deliti</button>
-            <p id="shareHint" class="share-hint" hidden></p>
           </div>
-        </div>
 
-        <button id="btnSignOut" class="tool-btn danger" type="button">Odjava</button>
+          <!-- Več možnosti -->
+          <div class="share-block">
+            <button id="btnMoreToggle" class="tool-btn share-toggle" type="button" aria-expanded="false" aria-controls="moreOptions">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
+              <span>Več možnosti</span>
+              <svg class="share-caret" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5 6 6.5 11 1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div id="moreOptions" class="share-options" hidden>
+              <button id="btnInstall" class="tool-btn primary" hidden>⬇️ Namesti app</button>
+            </div>
+          </div>
+
+          <button id="btnSignOut" class="tool-btn danger" type="button">Odjava</button>
+        </div>
       </div>
 
       <!-- Izbirnik checkliste v svoji vrstici pod naslovom.
@@ -174,7 +197,6 @@
             <button id="btnImport" class="tool-btn">📥 Uvozi</button>
             <button id="btnScan" class="tool-btn">📷 Skeniraj sliko</button>
             <button id="btnTheme" class="tool-btn">🌙 Tema</button>
-            <button id="btnInstall" class="tool-btn primary" hidden>⬇️ Namesti aplikacijo</button>
           </div>
         </div>
       </div>
@@ -272,6 +294,6 @@
   <!-- Supabase SDK (prijava + sinhronizacija checklist) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.js"></script>
   <script src="config.js?v=1"></script>
-  <script src="script.js?v=28"></script>
+  <script src="script.js?v=32"></script>
 </body>
 </html>

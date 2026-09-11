@@ -152,6 +152,10 @@ body {
 .user-btn svg { width: 19px; height: 19px; display: block; }
 .user-btn:active { transform: scale(.94); }
 
+/* Ovoj gumba + spustnega menija (.user-menu): meni je pozicioniran glede
+   na ta ovoj (position: relative), ne glede na cel .topbar-inner. */
+.user-menu-wrap { position: relative; display: inline-flex; flex: 0 0 auto; }
+
 /* Gumb "Deljeno" (odpre meni z deljenimi checklistami): ikona + besedilo. */
 .shared-btn {
   width: auto;
@@ -262,17 +266,26 @@ body {
 }
 .cl-picker.open .cl-trigger-caret { transform: rotate(180deg); }
 
-/* Meni: na telefonu se razpre navzdol (kot panela), na namizju kot spustni seznam */
+/* Meni: se vedno odpre kot plavajoc spustni seznam NAD vsebino - vsebine
+   pod njim ne premakne navzdol (enako na telefonu in na namizju). */
 .cl-menu {
-  overflow: hidden;
-  max-height: 0;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  overflow: visible;
+  margin: 0;
   opacity: 0;
-  transition: max-height .28s ease, opacity .2s ease, margin .2s ease;
+  visibility: hidden;
+  transform: translateY(-6px) scale(.98);
+  transform-origin: top left;
+  transition: opacity .18s ease, transform .18s cubic-bezier(.2,.8,.3,1), visibility .18s;
 }
 .cl-picker.open .cl-menu {
-  max-height: 60vh;
   opacity: 1;
-  margin-top: 8px;
+  visibility: visible;
+  transform: translateY(0) scale(1);
 }
 .cl-menu-list {
   display: flex;
@@ -735,31 +748,16 @@ body {
   .cl-picker     { width: auto; flex: 0 1 220px; min-width: 160px; }
   .progress-wrap { flex: 1 1 240px; max-width: 340px; }
 
-  /* Na namizju se meni checklist odpre kot spustni seznam (kot .panel). */
+  /* Na namizju je meni ozji (kot spustni seznam), ne razteza cele vrstice
+     - plavajoce pozicioniranje ze poskrbi osnovni .cl-menu slog zgoraj. */
   .cl-menu {
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
+    right: auto;
     min-width: 240px;
     max-width: min(360px, calc(100vw - 32px));
-    max-height: none;
-    overflow: visible;
-    margin: 0;
-    visibility: hidden;
-    transform: translateY(-6px) scale(.98);
-    transform-origin: top left;
-    transition: opacity .18s ease, transform .18s cubic-bezier(.2,.8,.3,1), visibility .18s;
-    z-index: 30;
-  }
-  .cl-picker.open .cl-menu {
-    max-height: none;
-    margin: 0;
-    visibility: visible;
-    transform: translateY(0) scale(1);
   }
   /* Gumba "Deljeno z mano" in racun gresta na skrajno desno stran vrstice. */
-  .shared-btn    { order: 4; margin-left: auto; }
-  .user-btn      { order: 5; }
+  .shared-wrap   { order: 4; margin-left: auto; }
+  .account-wrap  { order: 5; }
   /* Sprozilca menijev sta vidna tudi na namizju, tik ob izbirniku checkliste (levo) */
   .menu-zone     { position: relative; flex: 0 0 auto; }
   .menu-triggers { display: flex; gap: 8px; }
@@ -819,19 +817,23 @@ body {
 
   /* Ikoni racuna in "Deljeno z mano" pripeti cisto desno v vrstico z naslovom,
      poravnani na isto sredino kot ikona ob naslovu (vse 32 px, isti zgornji rob). */
-  .user-btn {
+  .account-wrap {
     position: absolute;
     top: 10px;
     right: 12px;
     z-index: 1;
+  }
+  .user-btn {
     width: 32px;
     height: 32px;
   }
-  .shared-btn {
+  .shared-wrap {
     position: absolute;
     top: 10px;
     right: 52px;
     z-index: 1;
+  }
+  .shared-btn {
     width: auto;
     height: 32px;
     padding: 0 10px;
@@ -1077,9 +1079,9 @@ body.auth-locked .content { display: none; }
 .user-menu {
   position: absolute;
   top: calc(100% + 8px);
-  right: 16px;
+  right: 0;
   z-index: 40;
-  width: 240px;
+  width: max-content;
   max-width: calc(100vw - 32px);
   background: var(--card);
   border: 1px solid var(--line);
@@ -1103,10 +1105,22 @@ body.auth-locked .content { display: none; }
 }
 .user-menu-status {
   margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-size: 12.5px;
   color: var(--text-soft);
 }
-.user-menu .tool-btn { width: 100%; }
+.sync-check {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+.sync-check[hidden] { display: none !important; }
+.user-menu .tool-btn { width: 100%; text-align: left; }
+/* Odjava ostane izjema: besedilo poravnano na sredino. */
+.user-menu .tool-btn#btnSignOut { text-align: center; }
 
 /* ---- Deljenje checklist (v meniju racuna) ---- */
 .share-block { display: flex; flex-direction: column; gap: 8px; }
@@ -1120,6 +1134,10 @@ body.auth-locked .content { display: none; }
   transition: transform .18s ease;
 }
 .share-toggle[aria-expanded="true"] .share-caret { transform: rotate(180deg); }
+.share-toggle[aria-expanded="true"] {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  background: color-mix(in srgb, var(--accent) 6%, var(--card));
+}
 
 .share-options,
 .share-picker { display: flex; flex-direction: column; gap: 8px; }
@@ -1128,8 +1146,10 @@ body.auth-locked .content { display: none; }
 .share-hint[hidden] { display: none !important; }
 
 .share-options {
-  padding-left: 10px;
-  border-left: 2px solid var(--line-soft);
+  padding: 10px;
+  border-left: 2px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: color-mix(in srgb, var(--accent) 6%, var(--card));
 }
 
 .share-picker-list {
@@ -1239,7 +1259,7 @@ body.auth-locked .content { display: none; }
 }
 
 @media (max-width: 719px) {
-  .user-menu { right: 12px; top: calc(100% + 6px); }
+  .user-menu { right: 0; top: calc(100% + 6px); }
 }
 
 /* ---- Predogled deljene checkliste ---- */

@@ -931,7 +931,8 @@ function bindTopbar() {
   if (userMenu.btn) {
     userMenu.btn.addEventListener("click", (e) => { e.stopPropagation(); toggleUserMenu(); });
     userMenu.sync.addEventListener("click", async () => {
-      if (userMenu.status) userMenu.status.textContent = "Sinhroniziram…";
+      if (userMenu.statusText) userMenu.statusText.textContent = "Sinhroniziram…";
+      if (userMenu.statusCheck) userMenu.statusCheck.setAttribute("hidden", "");
       await Auth.syncNow();
       updateSyncBadge();
     });
@@ -1343,7 +1344,9 @@ const userMenu = {
   btn:    $("#btnUser"),
   el:     $("#userMenu"),
   email:  $("#userMenuEmail"),
-  status: $("#userMenuStatus"),
+  status:      $("#userMenuStatus"),
+  statusText:  $("#userMenuStatusText"),
+  statusCheck: $("#userMenuStatusCheck"),
   sync:   $("#btnSyncNow"),
   out:    $("#btnSignOut"),
   // Deljenje checklist
@@ -1356,7 +1359,10 @@ const userMenu = {
   shareConfirm: $("#btnShareSomeConfirm"),
   shareStop:    $("#btnShareStop"),
   shareStatus:  $("#shareStatus"),
-  shareHint:    $("#shareHint")
+  shareHint:    $("#shareHint"),
+  // Več možnosti
+  moreToggle:   $("#btnMoreToggle"),
+  moreOptions:  $("#moreOptions")
 };
 
 const sharedMenu = {
@@ -1754,6 +1760,7 @@ function resetShareUI() {
   collapseShareSection(userMenu.shareSome, userMenu.sharePicker);
   if (userMenu.shareHint) { userMenu.shareHint.hidden = true; userMenu.shareHint.textContent = ""; }
   if (userMenu.shareStatus) userMenu.shareStatus.textContent = "";
+  collapseShareSection(userMenu.moreToggle, userMenu.moreOptions);
 }
 
 function collapseShareSection(toggleBtn, panel) {
@@ -1980,6 +1987,12 @@ function bindShareMenu() {
   userMenu.shareAll.addEventListener("click", () => handleShare("all"));
   userMenu.shareConfirm.addEventListener("click", () => handleShare("some", selectedShareIds()));
   if (userMenu.shareStop) userMenu.shareStop.addEventListener("click", handleStopSharing);
+
+  if (userMenu.moreToggle) {
+    userMenu.moreToggle.addEventListener("click", () => {
+      toggleShareSection(userMenu.moreToggle, userMenu.moreOptions);
+    });
+  }
 }
 
 /* ---------- Deljeno z mano ---------- */
@@ -2181,12 +2194,19 @@ function updateSyncBadge() {
   userMenu.btn.classList.toggle("is-offline", offline);
   userMenu.btn.classList.toggle("is-syncing", syncing);
   userMenu.btn.classList.toggle("is-dirty", dirty);
-  if (userMenu.status) {
-    userMenu.status.textContent = offline
+  const synced = !offline && !syncing && !dirty;
+  if (userMenu.statusText) {
+    userMenu.statusText.textContent = offline
       ? "Brez povezave – shranjeno lokalno."
       : syncing ? "Sinhroniziram…"
       : dirty   ? "Čaka na sinhronizacijo…"
       : "Vse sinhronizirano.";
+  }
+  if (userMenu.statusCheck) {
+    // Opomba: <svg> nima IDL lastnosti .hidden v vseh brskalnikih, zato
+    // atribut preklapljamo neposredno (removeAttribute/setAttribute).
+    if (synced) userMenu.statusCheck.removeAttribute("hidden");
+    else userMenu.statusCheck.setAttribute("hidden", "");
   }
 }
 
