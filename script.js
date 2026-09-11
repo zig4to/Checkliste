@@ -932,6 +932,7 @@ function bindTopbar() {
     els.search.value = "";
     closeChecklistMenu();
     renderAll();
+    refreshGroupChecklist(btn.dataset.id); // sveze stanje ob preklopu nanjo
   });
 
   // Dejanja nad lastnimi checklistami najprej zapustijo morebitni predogled.
@@ -1681,7 +1682,7 @@ const Auth = {
     const rows = checklists.map((cl) => ({
       id: cl.id, name: cl.name, checklist: cl, created_by: uid, email, updated_at
     }));
-    const { error } = await this.client.from(GROUP_TABLE).upsert(rows);
+    const { error } = await this.client.from(GROUP_TABLE).upsert(rows, { onConflict: "id" });
     if (error) throw error;
   },
 
@@ -2014,6 +2015,48 @@ async function loadMyGroupIds() {
   // (brez tega bi bila modra oznaka po osvezitvi strani vidna sele ob
   // naslednjem izrisu - videti je, kot da je checklista "izgubila" status).
   if (store) renderSelect();
+  // Zivo posodabljanje lovi samo spremembe, ki se zgodijo, medtem ko smo
+  // POVEZANI in gledamo to checklisto - karkoli se je spremenilo, medtem
+  // ko nas ni bilo (zaprt zavihek, druga checklista odprta ...), se sicer
+  // nikoli ne ujame. Zato ob vsakem nalaganju/prijavi povlecemo sveze
+  // stanje vseh checklist, ki jih imamo lokalno in so skupinske.
+  refreshAllMyGroupChecklists();
+}
+
+/** Povleče sveže stanje vseh lokalno prisotnih skupinskih checklist iz
+ *  baze in ga vgradi (ohrani lokalno odkljukanost/zlozenost) - ujame
+ *  spremembe, ki so se zgodile, medtem ko nismo bili povezani/gledali. */
+async function refreshAllMyGroupChecklists() {
+  if (!store || !myGroupIds.length || !Auth.configured() || !Auth.client) return;
+  const ids = myGroupIds.filter((id) => store.checklists.some((c) => c.id === id));
+  if (!ids.length) return;
+  try {
+    const { data, error } = await Auth.client
+      .from(GROUP_TABLE)
+      .select("id, checklist")
+      .in("id", ids);
+    if (error) throw error;
+    (data || []).forEach((row) => applyRemoteGroupUpdate(row));
+  } catch (e) {
+    console.warn("Svežega stanja skupinskih checklist ni bilo mogoče prebrati.", e);
+  }
+}
+
+/** Isto kot zgoraj, a za eno samo checklisto - poklice se ob preklopu nanjo,
+ *  da je ob odprtju sredi seje vedno prikazano sveze stanje. */
+async function refreshGroupChecklist(id) {
+  if (!store || !id || !myGroupIds.includes(id) || !Auth.configured() || !Auth.client) return;
+  try {
+    const { data, error } = await Auth.client
+      .from(GROUP_TABLE)
+      .select("id, checklist")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw error;
+    if (data) applyRemoteGroupUpdate(data);
+  } catch (e) {
+    console.warn("Svežega stanja skupinske checkliste ni bilo mogoče prebrati.", e);
+  }
 }
 
 /** Po urejanju z zamikom potisne svežo različico skupinskih checklist v oblak. */
