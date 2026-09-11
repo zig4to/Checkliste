@@ -1213,6 +1213,7 @@ body.auth-locked .content { display: none; }
 @media (hover: hover) {
   .shared-tab:not(.active):hover { color: var(--text); }
 }
+.shared-panel { display: flex; flex-direction: column; gap: 8px; }
 .shared-panel[hidden] { display: none !important; }
 .shared-users { display: flex; flex-direction: column; gap: 2px; }
 .shared-empty {

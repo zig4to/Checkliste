@@ -72,6 +72,40 @@ Kako deluje:
 - Deljene checkliste so **posnetek** ob deljenju — ko jih pozneje urejaš, se
   deljena kopija ne posodobi sama; ponovno klikni Deli.
 
+## 2c. Tabela za skupinske checkliste (zavihek "Skupinske checkliste")
+
+Da začne delovati zavihek **Skupinske checkliste** (v meniju "Deljeno", gumb
+**Ustvari skupinsko checklisto**), poženi v **SQL Editor** še:
+
+```sql
+create table public.group_checklists (
+  id         uuid primary key default gen_random_uuid(),
+  name       text not null,
+  checklist  jsonb not null,
+  created_by uuid references auth.users on delete set null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.group_checklists enable row level security;
+
+-- vsak PRIJAVLJEN uporabnik vidi vse skupinske checkliste
+create policy "group select all" on public.group_checklists
+  for select to authenticated using (true);
+
+-- ustvari lahko vsak prijavljen uporabnik (kot avtor svoje vrstice)
+create policy "group insert own" on public.group_checklists
+  for insert to authenticated with check (auth.uid() = created_by);
+```
+
+Kako deluje:
+
+- **Ustvari skupinsko checklisto** vpraša za ime in ustvari novo, prazno
+  checklisto (brez kategorij), vidno vsem prijavljenim uporabnikom.
+- Klik na ime v seznamu odpre predogled (enako kot pri "Deljeno z mano"),
+  od koder jo lahko uporabnik shrani v svoje checkliste.
+- Zaenkrat ni urejanja/brisanja skupinskih checklist iz aplikacije same
+  (samo ustvarjanje + predogled) — po potrebi doda RLS politiki `update`/`delete`.
+
 ## 3. Vklopi prijavo z e-pošto in geslom
 
 Supabase → **Authentication → Providers → Email**:

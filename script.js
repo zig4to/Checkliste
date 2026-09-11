@@ -1324,6 +1324,7 @@ function registerServiceWorker() {
 
 const SB_TABLE         = "user_checklists";
 const SHARE_TABLE      = "shared_checklists";
+const GROUP_TABLE      = "group_checklists";
 const PUSH_DEBOUNCE_MS  = 1500;
 const PUSH_RETRY_MS     = 4000;
 
@@ -1610,6 +1611,30 @@ const Auth = {
     return (data || []).filter((r) => Array.isArray(r.checklists) && r.checklists.length);
   },
 
+  /* ---- Skupinske checkliste ---- */
+
+  /** Vse skupinske checkliste (vidne vsem prijavljenim uporabnikom). */
+  async groupChecklists() {
+    const { data, error } = await this.client
+      .from(GROUP_TABLE)
+      .select("id, name, checklist, created_at")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  /** Ustvari novo (prazno) skupinsko checklisto z danim imenom. */
+  async createGroupChecklist(name) {
+    const authorId = this.userId();
+    if (!authorId) throw new Error("Ni prijave.");
+    const cl = { id: uid("cl"), name, categories: [] };
+    const { error } = await this.client
+      .from(GROUP_TABLE)
+      .insert({ name, checklist: cl, created_by: authorId });
+    if (error) throw error;
+    return cl;
+  },
+
   async syncNow() {
     clearTimeout(this._pushTimer);
     if (!this._pending && store && this.userId()) {
@@ -1785,8 +1810,8 @@ function toggleShareSection(toggleBtn, panel, onOpen) {
 function shareErrorText(e) {
   const msg = (e && (e.message || e.hint || "")) + "";
   const code = e && e.code;
-  if (code === "42P01" || code === "PGRST205" || /shared_checklists/.test(msg)) {
-    return "Deljenje ni nastavljeno na strežniku (manjka tabela shared_checklists).";
+  if (code === "42P01" || code === "PGRST205" || /shared_checklists|group_checklists/.test(msg)) {
+    return "Ta funkcija ni nastavljena na strežniku (manjka tabela v bazi).";
   }
   if (!navigator.onLine) return "Deljenje potrebuje internetno povezavo.";
   return "Deljenje ni uspelo. Poskusi znova.";
@@ -2023,6 +2048,7 @@ function switchSharedTab(tab) {
   }
   if (sharedMenu.panelMine) sharedMenu.panelMine.hidden = !isMine;
   if (sharedMenu.panelGroup) sharedMenu.panelGroup.hidden = isMine;
+  if (!isMine) loadGroupChecklists();
 }
 function closeSharedMenu() {
   if (!sharedMenu.el) return;
@@ -2116,6 +2142,73 @@ function renderSharedUsers(feed) {
   });
 }
 
+/* ---------- Skupinske checkliste ---------- */
+
+const groupChecklists = { list: $("#groupChecklistsList"), create: $("#btnCreateGroupChecklist") };
+
+/** Naloži skupinske checkliste in jih izriše. */
+async function loadGroupChecklists() {
+  const box = groupChecklists.list;
+  if (!box) return;
+  box.innerHTML = "";
+  const info = document.createElement("p");
+  info.className = "shared-empty";
+  box.appendChild(info);
+
+  if (!Auth.configured()) { info.textContent = "Deljenje ni na voljo (strežnik ni nastavljen)."; return; }
+  info.textContent = "Nalagam …";
+
+  let rows;
+  try {
+    rows = await Auth.groupChecklists();
+  } catch (e) {
+    console.warn("Skupinskih checklist ni bilo mogoče naložiti.", e);
+    info.textContent = shareErrorText(e);
+    return;
+  }
+  renderGroupChecklists(rows);
+}
+
+/** Izrise seznam skupinskih checklist; klik odpre predogled. */
+function renderGroupChecklists(rows) {
+  const box = groupChecklists.list;
+  if (!box) return;
+  box.innerHTML = "";
+
+  if (!rows || !rows.length) {
+    const p = document.createElement("p");
+    p.className = "shared-empty";
+    p.textContent = "Še ni skupinskih checklist.";
+    box.appendChild(p);
+    return;
+  }
+
+  rows.forEach((row) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "shared-user-btn";
+    btn.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3.5h6A1.5 1.5 0 0 1 16.5 5v.5H18a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-12a2 2 0 0 1 2-2h1.5V5A1.5 1.5 0 0 1 9 3.5Z"/><path d="m8.5 12.5 2 2 4-4.5"/><path d="M8.5 18h7"/></svg>' +
+      '<span></span>';
+    btn.querySelector("span").textContent = row.name || "—";
+    btn.addEventListener("click", () => openPreview(row.checklist, ""));
+    box.appendChild(btn);
+  });
+}
+
+/** Vpraša za ime in ustvari novo (prazno) skupinsko checklisto. */
+async function createGroupChecklistFlow() {
+  const name = await promptDialog("Ime skupinske checkliste:", "Skupinska checklista", "Ustvari");
+  if (!name) return;
+  try {
+    await Auth.createGroupChecklist(name);
+    loadGroupChecklists();
+  } catch (e) {
+    console.warn("Skupinske checkliste ni bilo mogoče ustvariti.", e);
+    alert(shareErrorText(e));
+  }
+}
+
 /* ---------- Predogled deljene checkliste ---------- */
 
 /** Vrstica nad vsebino: čigava checklista je v predogledu + gumb za izhod. */
@@ -2194,6 +2287,9 @@ function bindSharedMenu() {
   sharedMenu.btn.addEventListener("click", (e) => { e.stopPropagation(); toggleSharedMenu(); });
   if (sharedMenu.tabMine) sharedMenu.tabMine.addEventListener("click", () => switchSharedTab("mine"));
   if (sharedMenu.tabGroup) sharedMenu.tabGroup.addEventListener("click", () => switchSharedTab("group"));
+  if (groupChecklists.create) {
+    groupChecklists.create.addEventListener("click", () => { closePreview(); createGroupChecklistFlow(); });
+  }
   document.addEventListener("click", (e) => {
     if (sharedMenu.el.hidden) return;
     if (sharedMenu.el.contains(e.target) || sharedMenu.btn.contains(e.target)) return;

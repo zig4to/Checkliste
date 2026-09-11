@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-title" content="Nam Puzabu" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="style.css?v=57" />
+  <link rel="stylesheet" href="style.css?v=58" />
   <script>
     /* Prijava iz huba (TomsStudios): če naslov nosi #sb_at&sb_rt, pokaži
        nalagalnik namesto prijavnega obrazca, dokler se prijava ne izvede.
@@ -95,7 +95,8 @@
             <div id="sharedUsersList" class="shared-users"></div>
           </div>
           <div id="sharedPanelGroup" class="shared-panel" role="tabpanel" hidden>
-            <p class="shared-empty">Kmalu.</p>
+            <button id="btnCreateGroupChecklist" class="tool-btn" type="button">＋ Ustvari skupinsko checklisto</button>
+            <div id="groupChecklistsList" class="shared-users"></div>
           </div>
         </div>
       </div>
@@ -301,6 +302,6 @@
   <!-- Supabase SDK (prijava + sinhronizacija checklist) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.js"></script>
   <script src="config.js?v=1"></script>
-  <script src="script.js?v=35"></script>
+  <script src="script.js?v=36"></script>
 </body>
 </html>
