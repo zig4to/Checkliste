@@ -136,8 +136,8 @@ function userStoreKey() {
   return uid ? `${STORAGE_KEY}.${uid}` : null;
 }
 
-/** Prebere lokalno kopijo (predpomnilnik) trenutnega uporabnika ali null. */
-function loadLocalStore() {
+/** Prebere lokalno kopijo skupaj s casovnim zigom (za primerjavo z oblakom). */
+function loadLocalStoreRaw() {
   const key = userStoreKey();
   if (!key) return null;
   try {
@@ -146,13 +146,20 @@ function loadLocalStore() {
     const parsed = JSON.parse(raw);
     const data = parsed && parsed.store ? parsed.store : null;
     if (data && Array.isArray(data.checklists) && data.checklists.length) {
-      data.activeId = data.checklists[0].id;
-      return data;
+      return { store: data, updated_at: parsed.updated_at || null };
     }
   } catch (e) {
     console.warn("Napaka pri branju lokalne kopije.", e);
   }
   return null;
+}
+
+/** Prebere lokalno kopijo (predpomnilnik) trenutnega uporabnika ali null. */
+function loadLocalStore() {
+  const raw = loadLocalStoreRaw();
+  if (!raw) return null;
+  raw.store.activeId = raw.store.checklists[0].id;
+  return raw.store;
 }
 
 /** Zapiše lokalno kopijo stanja za trenutnega uporabnika. */
@@ -1644,7 +1651,7 @@ const Auth = {
   async groupChecklists() {
     const { data, error } = await this.client
       .from(GROUP_TABLE)
-      .select("id, name, checklist, updated_at")
+      .select("id, name, checklist, email, updated_at")
       .order("updated_at", { ascending: false });
     if (error) throw error;
     return data || [];
@@ -1668,8 +1675,9 @@ const Auth = {
     const uid = this.userId();
     if (!uid) throw new Error("Ni prijave.");
     const updated_at = new Date().toISOString();
+    const email = this.email();
     const rows = checklists.map((cl) => ({
-      id: cl.id, name: cl.name, checklist: cl, created_by: uid, updated_at
+      id: cl.id, name: cl.name, checklist: cl, created_by: uid, email, updated_at
     }));
     const { error } = await this.client.from(GROUP_TABLE).upsert(rows);
     if (error) throw error;
@@ -2000,6 +2008,10 @@ async function loadMyGroupIds() {
   } catch (e) {
     myGroupIds = [];
   }
+  // Podatki so priteceli asinhrono, po tem ko je bil izbirnik ze izrisan
+  // (brez tega bi bila modra oznaka po osvezitvi strani vidna sele ob
+  // naslednjem izrisu - videti je, kot da je checklista "izgubila" status).
+  if (store) renderSelect();
 }
 
 /** Po urejanju z zamikom potisne svežo različico skupinskih checklist v oblak. */
@@ -2281,8 +2293,10 @@ function renderGroupChecklists(rows) {
     btn.className = "shared-user-btn group-cl-btn";
     btn.innerHTML =
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3.5h6A1.5 1.5 0 0 1 16.5 5v.5H18a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-12a2 2 0 0 1 2-2h1.5V5A1.5 1.5 0 0 1 9 3.5Z"/><path d="m8.5 12.5 2 2 4-4.5"/><path d="M8.5 18h7"/></svg>' +
-      '<span></span>';
-    btn.querySelector("span").textContent = row.name || "—";
+      '<span class="group-cl-name"></span>' +
+      '<span class="group-cl-author"></span>';
+    btn.querySelector(".group-cl-name").textContent = row.name || "—";
+    btn.querySelector(".group-cl-author").textContent = row.email ? row.email.split("@")[0] : "";
     btn.addEventListener("click", () => openGroupChecklist(row));
     box.appendChild(btn);
   });
@@ -2432,11 +2446,25 @@ function updateSyncBadge() {
 
 let listenersBound = false;
 
-/** Poišče stanje za uporabnika: oblak → lokalna kopija → seme. */
+/** Poišče stanje za uporabnika: novejše od oblaka/lokalne kopije → seme.
+ *  Lokalna kopija je lahko novejsa od oblaka, ce se prejsnji (zakasnjeni)
+ *  potisk ni uspel dokoncati pred zaprtjem/osvezitvijo strani - v tem
+ *  primeru mora zmagati lokalna, sicer se novo dodane/urejene checkliste
+ *  ob osvezitvi navidez "izgubijo". */
 async function resolveUserStore() {
+  const localRaw = loadLocalStoreRaw();
   try {
     const remote = await Auth.pull();
-    if (remote && remote.data && Array.isArray(remote.data.checklists) && remote.data.checklists.length) {
+    const remoteOk = remote && remote.data && Array.isArray(remote.data.checklists) && remote.data.checklists.length;
+
+    if (localRaw && (!remoteOk || (localRaw.updated_at && (!remote.updated_at || localRaw.updated_at > remote.updated_at)))) {
+      const s = normalizeStore(localRaw.store);
+      persistLocal(s, localRaw.updated_at);
+      Auth.queuePush(s, localRaw.updated_at); // prejsnji potisk se ocitno ni dokoncal - poskusi znova
+      return s;
+    }
+
+    if (remoteOk) {
       const s = normalizeStore(remote.data);
       persistLocal(s, remote.updated_at);
       return s;
@@ -2454,8 +2482,11 @@ async function resolveUserStore() {
     return seeded;
   } catch (e) {
     console.warn("Branje iz oblaka ni uspelo, uporabljam lokalno kopijo.", e);
-    const local = loadLocalStore();
-    if (local) return local;
+    if (localRaw) {
+      const s = normalizeStore(localRaw.store);
+      Auth.queuePush(s, localRaw.updated_at);
+      return s;
+    }
     const seeded = buildSeedStore();
     persistLocal(seeded, null);
     Auth.queuePush(seeded);   // potisni takoj, ko bo povezava

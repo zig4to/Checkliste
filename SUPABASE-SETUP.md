@@ -78,8 +78,9 @@ Da začne delovati zavihek **Skupinske checkliste** (v meniju "Deljeno") in
 gumb **Ustvari skupinsko** (v Orodjih), poženi v **SQL Editor** še:
 
 > Če si to tabelo že ustvaril prej (starejša različica te datoteke), jo najprej
-> zbriši - shema se je spremenila (`id` je zdaj `text`, dodani sta politiki
-> `update`/`delete`): `drop table if exists public.group_checklists;`
+> zbriši - shema se je spet spremenila (dodan stolpec `email`, drugačna RLS
+> pravila, ki zdaj resnično omogočajo skupno urejanje):
+> `drop table if exists public.group_checklists;`
 
 ```sql
 create table public.group_checklists (
@@ -87,6 +88,7 @@ create table public.group_checklists (
   name       text not null,
   checklist  jsonb not null,
   created_by uuid references auth.users on delete set null,
+  email      text,               -- e-posta PRAVEGA ustvarjalca (glej sprozilec spodaj)
   updated_at timestamptz not null default now()
 );
 
@@ -96,14 +98,36 @@ alter table public.group_checklists enable row level security;
 create policy "group select all" on public.group_checklists
   for select to authenticated using (true);
 
--- ustvari/ureja/briše lahko vsak prijavljen uporabnik, a samo svoje vrstice
--- (update je nujen za "zivo" posodabljanje ob vsakem urejanju)
+-- ustvariti sme vsak prijavljen uporabnik
 create policy "group insert own" on public.group_checklists
   for insert to authenticated with check (auth.uid() = created_by);
-create policy "group update own" on public.group_checklists
-  for update to authenticated using (auth.uid() = created_by) with check (auth.uid() = created_by);
+
+-- UREJATI (zivo posodabljati vsebino) sme VSAK prijavljen uporabnik, ne
+-- samo ustvarjalec - to omogoca, da vec ljudi soureja isto checklisto.
+create policy "group update any" on public.group_checklists
+  for update to authenticated using (true) with check (true);
+
+-- brisati sme samo ustvarjalec
 create policy "group delete own" on public.group_checklists
   for delete to authenticated using (auth.uid() = created_by);
+
+-- Ker lahko vsakdo posodablja vrstico, bi brez tega sprozilca vsak urejevalec
+-- prepisal "created_by"/"email" nazaj nase - sprozilec poskrbi, da ta dva
+-- stolpca po prvem vnosu ostaneta nespremenjena (pravi ustvarjalec).
+create or replace function public.group_checklists_keep_creator()
+returns trigger language plpgsql as $$
+begin
+  if TG_OP = 'UPDATE' then
+    new.created_by := old.created_by;
+    new.email := old.email;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger group_checklists_keep_creator
+before insert or update on public.group_checklists
+for each row execute function public.group_checklists_keep_creator();
 ```
 
 Kako deluje:
@@ -113,11 +137,12 @@ Kako deluje:
   z zamikom samodejno potisne sveža kopija v `group_checklists`, torej jo
   vsi vidijo živo, ne le kot enkratni posnetek.
 - **Skupinske checkliste** (zavihek v meniju Deljeno) izpiše vse take
-  checkliste; klik na ime jo naloži naravnost v urejevalni pogled (ne
+  checkliste, na desni strani vsake pa e-pošto (del pred "@") tistega, ki jo
+  je ustvaril. Klik na ime jo naloži naravnost v urejevalni pogled (ne
   predogled) - doda se med uporabnikove checkliste in jo lahko takoj ureja.
-  Ob prvi shrambi po odprtju postane skupinska tudi zanj (njegove spremembe
-  se prav tako samodejno potiskajo naprej - več ljudi lahko sourejuje isto
-  skupinsko checklisto).
+  Ob prvi shrambi po odprtju postane skupinska tudi zanj - njegove spremembe
+  se prav tako samodejno potiskajo naprej, ustvarjalec pa (po zaslugi
+  sprozilca zgoraj) ostane isti, tudi ce jo ureja vec razlicnih ljudi.
 - V seznamu checklist (izbirnik zgoraj) ima vsaka skupinska checklista
   modro ikonco ob imenu.
 - Osebno stanje odkljukanosti elementov se NE sinhronizira med uporabniki

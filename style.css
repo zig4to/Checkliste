@@ -823,7 +823,7 @@ body {
   /* Uporabi robove namesto gap-a: zaprt panel ima 0 roba, torej ne pusti
      praznega prostora (gap bi ga sicer vseeno dodal ob obeh straneh). */
   .topbar-inner { padding: 10px 12px 6px; gap: 0; }
-  .brand { margin-bottom: 8px; }
+  .brand { margin-bottom: 16px; }
 
   /* Locilna crta ostane samo ena: tista pod gumboma Checkliste/Orodja
      (zamaknjena od robov). Crta celotnega topbara se skrije. */
@@ -923,6 +923,18 @@ body {
   .picker-actions #btnRenameChecklist,
   .picker-actions #btnDuplicateChecklist,
   .picker-actions #btnDeleteChecklist { flex: 1 1 calc(33.333% - 4px); }
+
+  /* Pod gumbi Preimenuj/Kopiraj/Izbrisi ista locilna crta kot pod
+     gumboma Checkliste/Orodja. */
+  .panel-checklist .picker-actions {
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  /* Isto pod orodji (Oznaci vse / Pocisti vse / Uvoz-izvoz / Tema). */
+  .panel-tools .toolbar {
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+  }
 
   /* Napredek ima nad sabo nekaj zraka, ko je viden. */
   .progress-wrap { margin-top: 10px; }
@@ -1133,6 +1145,8 @@ body.auth-locked .content { display: none; }
 
 .share-toggle { display: flex; align-items: center; gap: 8px; text-align: left; }
 .share-toggle > span { flex: 1 1 auto; }
+/* Izjema: besedilo gumba Uvoz/izvoz naj bo sredinsko poravnano. */
+#btnImportExportToggle > span { text-align: center; }
 .share-toggle .share-caret {
   width: 11px;
   height: 8px;
@@ -1280,9 +1294,17 @@ body.auth-locked .content { display: none; }
   font-size: 15px;
   font-weight: 700;
 }
-.group-cl-btn svg:first-child { width: 18px; height: 18px; color: var(--accent-2); }
+.group-cl-btn svg:first-child { width: 18px; height: 18px; color: var(--accent-2); flex-shrink: 0; }
 @media (hover: hover) {
   .group-cl-btn:hover { background: color-mix(in srgb, var(--accent-2) 18%, var(--card)); }
+}
+/* Ime raste in se lahko prelomi, avtor (e-posta) ostane pripet skrajno desno. */
+.group-cl-btn .group-cl-name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.group-cl-btn .group-cl-author {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-soft);
 }
 .shared-user-lists {
   list-style: none;
