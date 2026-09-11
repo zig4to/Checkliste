@@ -954,18 +954,12 @@ body {
     display: none;
   }
 
-  /* Zaprta kategorija: naslov na sredini vrstice.
-     Umakni nevidni prelom, sicer doda prazno drugo vrstico + row-gap in
-     besedilo ni navpicno centrirano v piluli. */
-  .category.collapsed .cat-head {
-    justify-content: center;
-    flex-wrap: nowrap;
-  }
+  /* Zaprta kategorija: brez napredka/gumbov v vrstici ni potrebe po
+     prelomu - puscica in naslov ostaneta v eni vrstici, poravnana levo
+     (enako kot pri odprti kategoriji), da so puscice vseh kategorij
+     poravnane druga pod drugo. */
+  .category.collapsed .cat-head { flex-wrap: nowrap; }
   .category.collapsed .cat-head::after { content: none; }
-  .category.collapsed .cat-name {
-    flex: 0 1 auto;
-    text-align: center;
-  }
 }
 
 /* ============ PRIJAVA (auth gate) ============ */
