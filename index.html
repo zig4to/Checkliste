@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-title" content="Nam Puzabu" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="style.css?v=58" />
+  <link rel="stylesheet" href="style.css?v=63" />
   <script>
     /* Prijava iz huba (TomsStudios): če naslov nosi #sb_at&sb_rt, pokaži
        nalagalnik namesto prijavnega obrazca, dokler se prijava ne izvede.
@@ -95,7 +95,6 @@
             <div id="sharedUsersList" class="shared-users"></div>
           </div>
           <div id="sharedPanelGroup" class="shared-panel" role="tabpanel" hidden>
-            <button id="btnCreateGroupChecklist" class="tool-btn" type="button">＋ Ustvari skupinsko checklisto</button>
             <div id="groupChecklistsList" class="shared-users"></div>
           </div>
         </div>
@@ -152,6 +151,7 @@
               <svg class="share-caret" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5 6 6.5 11 1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
             <div id="moreOptions" class="share-options" hidden>
+              <button id="btnTheme" class="tool-btn">🌙 Tema</button>
               <button id="btnInstall" class="tool-btn primary" hidden>⬇️ Namesti app</button>
             </div>
           </div>
@@ -201,10 +201,16 @@
           <div class="toolbar">
             <button id="btnCheckAll" class="tool-btn">✓ Označi vse</button>
             <button id="btnClearAll" class="tool-btn">↺ Počisti vse</button>
-            <button id="btnExportActive" class="tool-btn">📤 Izvozi aktivno</button>
-            <button id="btnExportAll" class="tool-btn">📤 Izvozi vse</button>
-            <button id="btnImport" class="tool-btn">📥 Uvozi</button>
-            <button id="btnTheme" class="tool-btn">🌙 Tema</button>
+            <button id="btnImportExportToggle" class="tool-btn share-toggle" type="button" aria-expanded="false" aria-controls="importExportOptions">
+              <span>📤 Uvoz/izvoz</span>
+              <svg class="share-caret" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5 6 6.5 11 1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button id="btnMarkGroup" class="tool-btn" type="button" title="Trenutno checklisto naredi skupinsko (vidno vsem, spremembe se posodabljajo)">👥 Ustvari skupinsko</button>
+            <div id="importExportOptions" class="share-options toolbar-expand" hidden>
+              <button id="btnExportActive" class="tool-btn">📤 Izvozi aktivno</button>
+              <button id="btnExportAll" class="tool-btn">📤 Izvozi vse</button>
+              <button id="btnImport" class="tool-btn">📥 Uvozi</button>
+            </div>
           </div>
         </div>
       </div>
@@ -302,6 +308,6 @@
   <!-- Supabase SDK (prijava + sinhronizacija checklist) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.js"></script>
   <script src="config.js?v=1"></script>
-  <script src="script.js?v=36"></script>
+  <script src="script.js?v=41"></script>
 </body>
 </html>

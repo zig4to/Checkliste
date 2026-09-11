@@ -301,6 +301,9 @@ body {
 }
 
 .cl-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   text-align: left;
   padding: 10px 12px;
   border: 1px solid transparent;
@@ -312,9 +315,22 @@ body {
   cursor: pointer;
   transition: background .15s ease, border-color .15s ease, color .15s ease;
 }
+.cl-option-label { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+/* Modra ikonca: oznaci checklisto, ki je "skupinska" (deljena, zivo se posodablja). */
+.cl-option-group-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--accent-2);
+}
 .cl-option:active { transform: none; }
 @media (hover: hover) {
   .cl-option:hover { background: var(--card-2); border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+}
+/* Skupinska checklista v izbirniku: modro obarvana vrstica, da izstopa. */
+.cl-option-group {
+  border-color: color-mix(in srgb, var(--accent-2) 45%, var(--line));
+  background: color-mix(in srgb, var(--accent-2) 10%, var(--card));
 }
 .cl-option.active {
   border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
@@ -1141,6 +1157,9 @@ body.auth-locked .content { display: none; }
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   background: color-mix(in srgb, var(--accent) 6%, var(--card));
 }
+/* Razdelek Uvoz/izvoz v Orodjih: mreza .toolbar ima 2 stolpca, razdelek
+   naj zavzame celo sirino, ne le enega stolpca. */
+.toolbar-expand { grid-column: 1 / -1; }
 
 .share-picker-list {
   display: flex;
@@ -1249,6 +1268,21 @@ body.auth-locked .content { display: none; }
 .shared-user-btn[aria-expanded="true"] .share-caret { transform: rotate(180deg); }
 @media (hover: hover) {
   .shared-user-btn:hover { background: var(--card-2); }
+}
+
+/* Skupinske checkliste (zavihek "Skupinske checkliste"): bolj vidne -
+   vecje besedilo + modra obarvanost, da izstopajo iz navadnega seznama. */
+.group-cl-btn {
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent-2) 40%, var(--line));
+  background: color-mix(in srgb, var(--accent-2) 10%, var(--card));
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 700;
+}
+.group-cl-btn svg:first-child { width: 18px; height: 18px; color: var(--accent-2); }
+@media (hover: hover) {
+  .group-cl-btn:hover { background: color-mix(in srgb, var(--accent-2) 18%, var(--card)); }
 }
 .shared-user-lists {
   list-style: none;

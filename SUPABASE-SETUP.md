@@ -74,16 +74,20 @@ Kako deluje:
 
 ## 2c. Tabela za skupinske checkliste (zavihek "Skupinske checkliste")
 
-Da začne delovati zavihek **Skupinske checkliste** (v meniju "Deljeno", gumb
-**Ustvari skupinsko checklisto**), poženi v **SQL Editor** še:
+Da začne delovati zavihek **Skupinske checkliste** (v meniju "Deljeno") in
+gumb **Ustvari skupinsko** (v Orodjih), poženi v **SQL Editor** še:
+
+> Če si to tabelo že ustvaril prej (starejša različica te datoteke), jo najprej
+> zbriši - shema se je spremenila (`id` je zdaj `text`, dodani sta politiki
+> `update`/`delete`): `drop table if exists public.group_checklists;`
 
 ```sql
 create table public.group_checklists (
-  id         uuid primary key default gen_random_uuid(),
+  id         text primary key,   -- isti id kot lokalna checklista (npr. "cl_xxx")
   name       text not null,
   checklist  jsonb not null,
   created_by uuid references auth.users on delete set null,
-  created_at timestamptz not null default now()
+  updated_at timestamptz not null default now()
 );
 
 alter table public.group_checklists enable row level security;
@@ -92,19 +96,35 @@ alter table public.group_checklists enable row level security;
 create policy "group select all" on public.group_checklists
   for select to authenticated using (true);
 
--- ustvari lahko vsak prijavljen uporabnik (kot avtor svoje vrstice)
+-- ustvari/ureja/briše lahko vsak prijavljen uporabnik, a samo svoje vrstice
+-- (update je nujen za "zivo" posodabljanje ob vsakem urejanju)
 create policy "group insert own" on public.group_checklists
   for insert to authenticated with check (auth.uid() = created_by);
+create policy "group update own" on public.group_checklists
+  for update to authenticated using (auth.uid() = created_by) with check (auth.uid() = created_by);
+create policy "group delete own" on public.group_checklists
+  for delete to authenticated using (auth.uid() = created_by);
 ```
 
 Kako deluje:
 
-- **Ustvari skupinsko checklisto** vpraša za ime in ustvari novo, prazno
-  checklisto (brez kategorij), vidno vsem prijavljenim uporabnikom.
-- Klik na ime v seznamu odpre predogled (enako kot pri "Deljeno z mano"),
-  od koder jo lahko uporabnik shrani v svoje checkliste.
-- Zaenkrat ni urejanja/brisanja skupinskih checklist iz aplikacije same
-  (samo ustvarjanje + predogled) — po potrebi doda RLS politiki `update`/`delete`.
+- **Ustvari skupinsko** (v Orodjih) trenutno aktivno checklisto naredi
+  skupinsko - odslej se ob vsaki njeni spremembi (enako kot pri deljenju)
+  z zamikom samodejno potisne sveža kopija v `group_checklists`, torej jo
+  vsi vidijo živo, ne le kot enkratni posnetek.
+- **Skupinske checkliste** (zavihek v meniju Deljeno) izpiše vse take
+  checkliste; klik na ime jo naloži naravnost v urejevalni pogled (ne
+  predogled) - doda se med uporabnikove checkliste in jo lahko takoj ureja.
+  Ob prvi shrambi po odprtju postane skupinska tudi zanj (njegove spremembe
+  se prav tako samodejno potiskajo naprej - več ljudi lahko sourejuje isto
+  skupinsko checklisto).
+- V seznamu checklist (izbirnik zgoraj) ima vsaka skupinska checklista
+  modro ikonco ob imenu.
+- Osebno stanje odkljukanosti elementov se NE sinhronizira med uporabniki
+  (vsak ima svoje kljukice) - v `group_checklists` gre samo "cista" struktura
+  (imena kategorij/elementov), enako kot pri "Deli checkliste".
+- Zavihek Skupinske checkliste je samo za pregled/odpiranje - novo skupinsko
+  checklisto lahko ustvariš izključno prek gumba **Ustvari skupinsko** (Orodja).
 
 ## 3. Vklopi prijavo z e-pošto in geslom
 

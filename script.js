@@ -188,6 +188,7 @@ function save() {
   persistLocal(store, stamp);
   Auth.queuePush(store, stamp);
   queueSharedResync();   // če kaj deliš, osveži deljeno kopijo
+  queueGroupResync();    // če je kaj skupinsko, osveži skupinsko kopijo
 }
 
 /* ---------- Dostop do trenutne checkliste ---------- */
@@ -295,11 +296,24 @@ function renderSelect() {
   store.checklists.forEach((cl) => {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "cl-option" + (cl.id === store.activeId ? " active" : "");
-    btn.textContent = cl.name;
+    btn.className = "cl-option"
+      + (cl.id === store.activeId ? " active" : "")
+      + (myGroupIds.includes(cl.id) ? " cl-option-group" : "");
     btn.dataset.id = cl.id;
     btn.setAttribute("role", "option");
     btn.setAttribute("aria-selected", cl.id === store.activeId ? "true" : "false");
+
+    const label = document.createElement("span");
+    label.className = "cl-option-label";
+    label.textContent = cl.name;
+    btn.appendChild(label);
+
+    if (myGroupIds.includes(cl.id)) {
+      btn.insertAdjacentHTML("beforeend",
+        '<svg class="cl-option-group-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" title="Skupinska checklista">' +
+        '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>' +
+        '<path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>');
+    }
     els.clList.appendChild(btn);
   });
 }
@@ -926,6 +940,16 @@ function bindTopbar() {
   $("#btnImport").addEventListener("click", () => { closePreview(); els.importFile.click(); });
   $("#btnTheme").addEventListener("click", toggleTheme);
 
+  const importExportToggle = $("#btnImportExportToggle");
+  const importExportOptions = $("#importExportOptions");
+  if (importExportToggle) {
+    importExportToggle.addEventListener("click", () => {
+      toggleShareSection(importExportToggle, importExportOptions);
+    });
+  }
+  const btnMarkGroup = $("#btnMarkGroup");
+  if (btnMarkGroup) btnMarkGroup.addEventListener("click", own(markActiveAsGroup));
+
   // Račun (prijava / sinhronizacija)
   if (userMenu.btn) {
     userMenu.btn.addEventListener("click", (e) => { e.stopPropagation(); toggleUserMenu(); });
@@ -1000,6 +1024,9 @@ function bindTopbar() {
     panelTools.classList.remove("open");
     trigChecklist.setAttribute("aria-expanded", "false");
     trigTools.setAttribute("aria-expanded", "false");
+    const ieToggle = $("#btnImportExportToggle");
+    const ieOptions = $("#importExportOptions");
+    if (ieToggle && ieOptions) collapseShareSection(ieToggle, ieOptions);
   }
 
   trigChecklist.addEventListener("click", (e) => {
@@ -1617,22 +1644,35 @@ const Auth = {
   async groupChecklists() {
     const { data, error } = await this.client
       .from(GROUP_TABLE)
-      .select("id, name, checklist, created_at")
-      .order("created_at", { ascending: false });
+      .select("id, name, checklist, updated_at")
+      .order("updated_at", { ascending: false });
     if (error) throw error;
     return data || [];
   },
 
-  /** Ustvari novo (prazno) skupinsko checklisto z danim imenom. */
-  async createGroupChecklist(name) {
-    const authorId = this.userId();
-    if (!authorId) throw new Error("Ni prijave.");
-    const cl = { id: uid("cl"), name, categories: [] };
-    const { error } = await this.client
+  /** ID-ji checklist tega uporabnika, ki so trenutno skupinske. */
+  async myGroupChecklistIds() {
+    const uid = this.userId();
+    if (!uid) return [];
+    const { data, error } = await this.client
       .from(GROUP_TABLE)
-      .insert({ name, checklist: cl, created_by: authorId });
+      .select("id")
+      .eq("created_by", uid);
     if (error) throw error;
-    return cl;
+    return (data || []).map((r) => r.id);
+  },
+
+  /** Zapiše (ustvari ali posodobi) trenutno stanje skupinskih checklist
+   *  tega uporabnika - upsert po id, da ostane ena vrstica na checklisto. */
+  async pushGroupChecklists(checklists) {
+    const uid = this.userId();
+    if (!uid) throw new Error("Ni prijave.");
+    const updated_at = new Date().toISOString();
+    const rows = checklists.map((cl) => ({
+      id: cl.id, name: cl.name, checklist: cl, created_by: uid, updated_at
+    }));
+    const { error } = await this.client.from(GROUP_TABLE).upsert(rows);
+    if (error) throw error;
   },
 
   async syncNow() {
@@ -1947,6 +1987,58 @@ async function resyncShared() {
   }
 }
 
+/* ---- Samodejno osveževanje skupinskih (live) checklist ob urejanju ---- */
+
+let myGroupIds = [];
+let _groupResyncTimer = null;
+
+/** Ob prijavi naloži, katere svoje checkliste je uporabnik naredil skupinske. */
+async function loadMyGroupIds() {
+  if (!Auth.configured()) { myGroupIds = []; return; }
+  try {
+    myGroupIds = await Auth.myGroupChecklistIds();
+  } catch (e) {
+    myGroupIds = [];
+  }
+}
+
+/** Po urejanju z zamikom potisne svežo različico skupinskih checklist v oblak. */
+function queueGroupResync() {
+  if (!myGroupIds.length || !Auth.configured() || !navigator.onLine) return;
+  clearTimeout(_groupResyncTimer);
+  _groupResyncTimer = setTimeout(resyncGroup, 1500);
+}
+
+async function resyncGroup() {
+  if (!store || !myGroupIds.length) return;
+  const local = new Map(store.checklists.map((c) => [c.id, c]));
+  // Checkliste, ki so bile lokalno izbrisane, ne moremo vec posodabljati -
+  // ostanejo take, kot so bile zadnjic (brez tihega izklopa skupinskega statusa).
+  const mine = myGroupIds.map((id) => local.get(id)).filter(Boolean);
+  if (!mine.length) return;
+  try {
+    await Auth.pushGroupChecklists(mine.map(cleanChecklistForShare));
+  } catch (e) {
+    console.warn("Samodejna posodobitev skupinskih checklist ni uspela.", e);
+  }
+}
+
+/** Trenutno aktivno (svojo) checklisto naredi skupinsko - odslej se vsaka
+ *  sprememba samodejno potisne v skupinsko kopijo, vidno vsem. */
+async function markActiveAsGroup() {
+  if (preview || !store) return;
+  const cl = getActive();
+  if (!cl) return;
+  try {
+    await Auth.pushGroupChecklists([cleanChecklistForShare(cl)]);
+    if (!myGroupIds.includes(cl.id)) myGroupIds.push(cl.id);
+    alert(`"${cl.name}" je zdaj skupinska checklista - vidna bo v meniju "Deljeno" → "Skupinske checkliste", spremembe pa se bodo samodejno posodabljale.`);
+  } catch (e) {
+    console.warn("Checkliste ni bilo mogoče narediti skupinske.", e);
+    alert(shareErrorText(e));
+  }
+}
+
 function updateShareConfirm() {
   if (!userMenu.shareConfirm) return;
   const n = selectedShareIds().length;
@@ -2144,7 +2236,7 @@ function renderSharedUsers(feed) {
 
 /* ---------- Skupinske checkliste ---------- */
 
-const groupChecklists = { list: $("#groupChecklistsList"), create: $("#btnCreateGroupChecklist") };
+const groupChecklists = { list: $("#groupChecklistsList") };
 
 /** Naloži skupinske checkliste in jih izriše. */
 async function loadGroupChecklists() {
@@ -2186,27 +2278,37 @@ function renderGroupChecklists(rows) {
   rows.forEach((row) => {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "shared-user-btn";
+    btn.className = "shared-user-btn group-cl-btn";
     btn.innerHTML =
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3.5h6A1.5 1.5 0 0 1 16.5 5v.5H18a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-12a2 2 0 0 1 2-2h1.5V5A1.5 1.5 0 0 1 9 3.5Z"/><path d="m8.5 12.5 2 2 4-4.5"/><path d="M8.5 18h7"/></svg>' +
       '<span></span>';
     btn.querySelector("span").textContent = row.name || "—";
-    btn.addEventListener("click", () => openPreview(row.checklist, ""));
+    btn.addEventListener("click", () => openGroupChecklist(row));
     box.appendChild(btn);
   });
 }
 
-/** Vpraša za ime in ustvari novo (prazno) skupinsko checklisto. */
-async function createGroupChecklistFlow() {
-  const name = await promptDialog("Ime skupinske checkliste:", "Skupinska checklista", "Ustvari");
-  if (!name) return;
-  try {
-    await Auth.createGroupChecklist(name);
-    loadGroupChecklists();
-  } catch (e) {
-    console.warn("Skupinske checkliste ni bilo mogoče ustvariti.", e);
-    alert(shareErrorText(e));
+/** Odpre skupinsko checklisto naravnost v urejevalni pogled (ni predogled) -
+ *  doda jo (ali preklopi nanjo, ce jo uporabnik ze ima) med svoje checkliste
+ *  in jo naredi skupinsko tudi zanj, da se njegove spremembe posodabljajo vsem. */
+function openGroupChecklist(row) {
+  if (!store) return;
+  closePreview();
+  closeSharedMenu();
+
+  const existing = store.checklists.find((c) => c.id === row.id);
+  if (existing) {
+    store.activeId = existing.id;
+  } else {
+    const cl = normalizeChecklist({ ...clone(row.checklist), id: row.id, name: row.name });
+    store.checklists.unshift(cl);
+    store.activeId = cl.id;
   }
+  if (!myGroupIds.includes(row.id)) myGroupIds.push(row.id);
+
+  els.search.value = "";
+  renderAll();
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 /* ---------- Predogled deljene checkliste ---------- */
@@ -2287,9 +2389,6 @@ function bindSharedMenu() {
   sharedMenu.btn.addEventListener("click", (e) => { e.stopPropagation(); toggleSharedMenu(); });
   if (sharedMenu.tabMine) sharedMenu.tabMine.addEventListener("click", () => switchSharedTab("mine"));
   if (sharedMenu.tabGroup) sharedMenu.tabGroup.addEventListener("click", () => switchSharedTab("group"));
-  if (groupChecklists.create) {
-    groupChecklists.create.addEventListener("click", () => { closePreview(); createGroupChecklistFlow(); });
-  }
   document.addEventListener("click", (e) => {
     if (sharedMenu.el.hidden) return;
     if (sharedMenu.el.contains(e.target) || sharedMenu.btn.contains(e.target)) return;
@@ -2396,6 +2495,7 @@ async function bootApp() {
   updateAccountUI();
   updateSyncBadge();
   loadMySharedIds();               // za samodejno osveževanje deljene kopije
+  loadMyGroupIds();                // za samodejno osveževanje skupinske kopije
   maybeInstallPromoAfterLogin();
 }
 
@@ -2403,6 +2503,8 @@ function teardownApp() {
   store = null;
   clearTimeout(_sharedResyncTimer);
   mySharedIds = [];
+  clearTimeout(_groupResyncTimer);
+  myGroupIds = [];
   closePreview();
   closeUserMenu();
   closeSharedMenu();
