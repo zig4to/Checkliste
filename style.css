@@ -1181,6 +1181,39 @@ body.auth-locked .content { display: none; }
 }
 
 /* ---- Deljeno z mano (meni ob ikoni skupine) ---- */
+.shared-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--card-2);
+  border-radius: 999px;
+  margin-bottom: 4px;
+}
+.shared-tab {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-soft);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -.005em;
+  white-space: nowrap;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.shared-tab.active {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  background: color-mix(in srgb, var(--accent) 6%, var(--card));
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+@media (hover: hover) {
+  .shared-tab:not(.active):hover { color: var(--text); }
+}
+.shared-panel[hidden] { display: none !important; }
 .shared-users { display: flex; flex-direction: column; gap: 2px; }
 .shared-empty {
   margin: 0;
@@ -1250,6 +1283,18 @@ body.auth-locked .content { display: none; }
 
 @media (max-width: 719px) {
   .user-menu { right: 0; top: calc(100% + 6px); }
+
+  /* Meni "Deljeno z mano" se na telefonu odpre čez celo širino zaslona
+     (kot ostala vsebina, z istim 12px robom), namesto ozkega okna ob gumbu. */
+  .shared-menu {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    top: 48px; /* tik pod gumbom (top:10px + višina 32px + 6px razmika) */
+    width: auto;
+    min-width: 0;
+    max-width: none;
+  }
 }
 
 /* ---- Predogled deljene checkliste ---- */

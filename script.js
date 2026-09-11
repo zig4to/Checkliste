@@ -1367,7 +1367,12 @@ const userMenu = {
 const sharedMenu = {
   btn:  $("#btnShared"),
   el:   $("#sharedMenu"),
-  list: $("#sharedUsersList")
+  list: $("#sharedUsersList"),
+  // Zavihka
+  tabMine:    $("#sharedTabMine"),
+  tabGroup:   $("#sharedTabGroup"),
+  panelMine:  $("#sharedPanelMine"),
+  panelGroup: $("#sharedPanelGroup")
 };
 
 const Auth = {
@@ -1999,9 +2004,25 @@ function bindShareMenu() {
 function openSharedMenu() {
   if (!sharedMenu.el) return;
   closeUserMenu();
+  switchSharedTab("mine");
   sharedMenu.el.hidden = false;
   sharedMenu.btn.setAttribute("aria-expanded", "true");
   loadSharedUsers();
+}
+
+/** Preklopi med zavihkoma "Deljeno z mano" / "Skupinske checkliste". */
+function switchSharedTab(tab) {
+  const isMine = tab !== "group";
+  if (sharedMenu.tabMine) {
+    sharedMenu.tabMine.classList.toggle("active", isMine);
+    sharedMenu.tabMine.setAttribute("aria-selected", String(isMine));
+  }
+  if (sharedMenu.tabGroup) {
+    sharedMenu.tabGroup.classList.toggle("active", !isMine);
+    sharedMenu.tabGroup.setAttribute("aria-selected", String(!isMine));
+  }
+  if (sharedMenu.panelMine) sharedMenu.panelMine.hidden = !isMine;
+  if (sharedMenu.panelGroup) sharedMenu.panelGroup.hidden = isMine;
 }
 function closeSharedMenu() {
   if (!sharedMenu.el) return;
@@ -2061,7 +2082,8 @@ function renderSharedUsers(feed) {
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' +
       '<span></span>' +
       '<svg class="share-caret" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5 6 6.5 11 1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    btn.querySelector("span").textContent = u.email || "—";
+    // Zaenkrat brez pravega imena/priimka: pokazi del e-naslova pred "@".
+    btn.querySelector("span").textContent = (u.email || "").split("@")[0] || "—";
 
     const ul = document.createElement("ul");
     ul.className = "shared-user-lists";
@@ -2170,6 +2192,8 @@ function closePreview() {
 function bindSharedMenu() {
   if (!sharedMenu.btn) return;
   sharedMenu.btn.addEventListener("click", (e) => { e.stopPropagation(); toggleSharedMenu(); });
+  if (sharedMenu.tabMine) sharedMenu.tabMine.addEventListener("click", () => switchSharedTab("mine"));
+  if (sharedMenu.tabGroup) sharedMenu.tabGroup.addEventListener("click", () => switchSharedTab("group"));
   document.addEventListener("click", (e) => {
     if (sharedMenu.el.hidden) return;
     if (sharedMenu.el.contains(e.target) || sharedMenu.btn.contains(e.target)) return;
