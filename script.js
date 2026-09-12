@@ -264,14 +264,50 @@ function openModal({ title, message, withInput, defaultValue = "" }) {
   modal.input.hidden = !withInput;
   modal.input.value = defaultValue;
   modal.overlay.hidden = false;
+  syncModalToVisualViewport();
 
-  if (withInput) setTimeout(() => modal.input.select(), 40);
+  // Fokus mora biti sinhron znotraj uporabnikovega klika, sicer mobilni
+  // brskalniki (Safari/Chrome na telefonu) ne odprejo virtualne tipkovnice.
+  if (withInput) {
+    modal.input.focus({ preventScroll: true });
+    modal.input.select();
+    // Varnostna mreza: nekateri brskalniki potrebujejo dodaten tik po
+    // prerisu (npr. tik po odstranitvi `hidden`), zato fokus ponovimo.
+    // Tipkovnica se na telefonu odpre z zamikom - takrat se sprozi tudi
+    // "resize" na visualViewport in syncModalToVisualViewport ga ujame,
+    // a za vsak primer polozaj osvezimo se enkrat rocno.
+    setTimeout(() => {
+      modal.input.focus({ preventScroll: true });
+      syncModalToVisualViewport();
+    }, 40);
+  }
 
   return new Promise((resolve) => { modal._resolve = resolve; });
 }
 
+/**
+ * Ko se na telefonu odpre virtualna tipkovnica, se `visualViewport` (vidno
+ * obmocje nad tipkovnico) skrci, medtem ko `.modal-overlay` (position: fixed;
+ * inset: 0) ostane raztegnjen cez celoten - tudi s tipkovnico prekrit -
+ * zaslon. Zato okvir okna eksplicitno prilagodimo na dejansko vidno obmocje:
+ * `place-items: center` potem obrazec postavi na sredino MED tipkovnico in
+ * vrhom zaslona, ne pa na sredino celega (delno prekritega) zaslona.
+ */
+function syncModalToVisualViewport() {
+  const vv = window.visualViewport;
+  if (!vv || modal.overlay.hidden) return;
+  modal.overlay.style.height = `${vv.height}px`;
+  modal.overlay.style.top = `${vv.offsetTop}px`;
+}
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", syncModalToVisualViewport);
+  window.visualViewport.addEventListener("scroll", syncModalToVisualViewport);
+}
+
 function closeModal(result) {
   modal.overlay.hidden = true;
+  modal.overlay.style.height = "";
+  modal.overlay.style.top = "";
   if (modal._resolve) {
     modal._resolve(result);
     modal._resolve = null;

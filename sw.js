@@ -6,7 +6,7 @@
 
 "use strict";
 
-const CACHE_VERSION = "v70";
+const CACHE_VERSION = "v75";
 const SHELL_CACHE   = `checkliste-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `checkliste-runtime-${CACHE_VERSION}`;
 
@@ -15,9 +15,9 @@ const RUNTIME_CACHE = `checkliste-runtime-${CACHE_VERSION}`;
 const SHELL_ASSETS = [
   "./",
   "./index.html",
-  "./style.css?v=70",
+  "./style.css?v=74",
   "./config.js?v=1",
-  "./script.js?v=45",
+  "./script.js?v=47",
   "./manifest.webmanifest",
   "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.js",
   "./icons/icon-192.png",
