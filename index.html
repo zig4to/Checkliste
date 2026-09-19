@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-title" content="Nam Puzabu" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <link rel="stylesheet" href="style.css?v=74" />
+  <link rel="stylesheet" href="style.css?v=76" />
   <script>
     /* Prijava iz huba (TomsStudios): če naslov nosi #sb_at&sb_rt, pokaži
        nalagalnik namesto prijavnega obrazca, dokler se prijava ne izvede.
@@ -178,7 +178,7 @@
            razprejo navzdol, na namizju se odpreta kot spustna seznama) -->
       <div class="menu-zone">
         <div class="menu-triggers">
-          <button id="toggleChecklistMenu" class="menu-trigger" aria-expanded="false">📋 Checkliste ▾</button>
+          <button id="toggleChecklistMenu" class="menu-trigger" aria-expanded="false">✏️ Uredi izbrano ▾</button>
           <button id="toggleToolsMenu" class="menu-trigger" aria-expanded="false">⚙️ Orodja ▾</button>
         </div>
 
@@ -293,6 +293,7 @@
         <input type="checkbox" class="chk" />
         <span class="item-text"></span>
       </label>
+      <span class="item-avatar" hidden></span>
       <div class="item-actions">
         <button class="mini-btn act-move-item" title="Premakni v kategorijo">↔</button>
         <button class="mini-btn act-item-up" title="Gor">↑</button>
@@ -308,6 +309,6 @@
   <!-- Supabase SDK (prijava + sinhronizacija checklist) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.js"></script>
   <script src="config.js?v=1"></script>
-  <script src="script.js?v=47"></script>
+  <script src="script.js?v=53"></script>
 </body>
 </html>

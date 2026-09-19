@@ -40,10 +40,11 @@ Da začne delovati deljenje (gumb **Deli checkliste** v meniju računa in meni
 
 ```sql
 create table public.shared_checklists (
-  user_id    uuid primary key references auth.users on delete cascade,
-  email      text,
-  checklists jsonb not null default '[]'::jsonb,
-  updated_at timestamptz not null default now()
+  user_id      uuid primary key references auth.users on delete cascade,
+  email        text,
+  display_name text,          -- iz auth.users.raw_user_meta_data.display_name, ce ga uporabnik ima
+  checklists   jsonb not null default '[]'::jsonb,
+  updated_at   timestamptz not null default now()
 );
 
 alter table public.shared_checklists enable row level security;
@@ -84,12 +85,13 @@ gumb **Ustvari skupinsko** (v Orodjih), poženi v **SQL Editor** še:
 
 ```sql
 create table public.group_checklists (
-  id         text primary key,   -- isti id kot lokalna checklista (npr. "cl_xxx")
-  name       text not null,
-  checklist  jsonb not null,
-  created_by uuid references auth.users on delete set null,
-  email      text,               -- e-posta PRAVEGA ustvarjalca (glej sprozilec spodaj)
-  updated_at timestamptz not null default now()
+  id           text primary key,   -- isti id kot lokalna checklista (npr. "cl_xxx")
+  name         text not null,
+  checklist    jsonb not null,
+  created_by   uuid references auth.users on delete set null,
+  email        text,               -- e-posta PRAVEGA ustvarjalca (glej sprozilec spodaj)
+  display_name text,               -- prikazno ime PRAVEGA ustvarjalca (isto, glej sprozilec spodaj)
+  updated_at   timestamptz not null default now()
 );
 
 alter table public.group_checklists enable row level security;
@@ -112,14 +114,15 @@ create policy "group delete own" on public.group_checklists
   for delete to authenticated using (auth.uid() = created_by);
 
 -- Ker lahko vsakdo posodablja vrstico, bi brez tega sprozilca vsak urejevalec
--- prepisal "created_by"/"email" nazaj nase - sprozilec poskrbi, da ta dva
--- stolpca po prvem vnosu ostaneta nespremenjena (pravi ustvarjalec).
+-- prepisal "created_by"/"email"/"display_name" nazaj nase - sprozilec poskrbi,
+-- da ti trije stolpci po prvem vnosu ostanejo nespremenjeni (pravi ustvarjalec).
 create or replace function public.group_checklists_keep_creator()
 returns trigger language plpgsql as $$
 begin
   if TG_OP = 'UPDATE' then
     new.created_by := old.created_by;
     new.email := old.email;
+    new.display_name := old.display_name;
   end if;
   return new;
 end;
@@ -145,8 +148,9 @@ Kako deluje:
   z zamikom samodejno potisne sveža kopija v `group_checklists`, torej jo
   vsi vidijo živo, ne le kot enkratni posnetek.
 - **Skupinske checkliste** (zavihek v meniju Deljeno) izpiše vse take
-  checkliste, na desni strani vsake pa e-pošto (del pred "@") tistega, ki jo
-  je ustvaril. Klik na ime jo naloži naravnost v urejevalni pogled (ne
+  checkliste, na desni strani vsake pa prikazno ime (`display_name`) tistega,
+  ki jo je ustvaril, če ga ima nastavljenega, sicer e-pošto (del pred "@").
+  Klik na ime jo naloži naravnost v urejevalni pogled (ne
   predogled) - doda se med uporabnikove checkliste in jo lahko takoj ureja.
   Ob prvi shrambi po odprtju postane skupinska tudi zanj - njegove spremembe
   se prav tako samodejno potiskajo naprej, ustvarjalec pa (po zaslugi
@@ -164,6 +168,42 @@ Kako deluje:
   (imena kategorij/elementov), enako kot pri "Deli checkliste".
 - Zavihek Skupinske checkliste je samo za pregled/odpiranje - novo skupinsko
   checklisto lahko ustvariš izključno prek gumba **Ustvari skupinsko** (Orodja).
+
+## 2d. Nadgradnja: prikazno ime namesto e-pošte (`display_name`)
+
+Če imata tabeli `shared_checklists` in `group_checklists` že narejeni (starejša
+različica te datoteke, brez stolpca `display_name`), poženi v **SQL Editor**:
+
+```sql
+alter table public.shared_checklists add column if not exists display_name text;
+alter table public.group_checklists  add column if not exists display_name text;
+
+-- sprozilec mora zdaj poleg "email" pripeti tudi "display_name"
+create or replace function public.group_checklists_keep_creator()
+returns trigger language plpgsql as $$
+begin
+  if TG_OP = 'UPDATE' then
+    new.created_by := old.created_by;
+    new.email := old.email;
+    new.display_name := old.display_name;
+  end if;
+  return new;
+end;
+$$;
+```
+
+Prikazno ime uporabnika (`raw_user_meta_data.display_name` v `auth.users`) se
+samodejno vpiše v ta dva stolpca ob naslednjem potisku (deljenju / spremembi
+skupinske checkliste) - ročno ga ni treba prepisovati. Za obstoječe
+uporabnike, ki jim ga želiš nastaviti ročno (npr. ker se niso sami
+registrirali s tem poljem), v **SQL Editor**:
+
+```sql
+update auth.users
+set raw_user_meta_data = coalesce(raw_user_meta_data, '{}'::jsonb)
+    || jsonb_build_object('display_name', 'Ime Priimek')
+where email = 'nekdo@example.com';
+```
 
 ## 3. Vklopi prijavo z e-pošto in geslom
 

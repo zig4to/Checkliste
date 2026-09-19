@@ -682,6 +682,26 @@ body {
   overflow-wrap: anywhere;
   transition: color .18s ease, opacity .18s ease;
 }
+
+/* Avatar krogec z zacetnicama - kdo je element dodal (samo skupinske
+   checkliste). Vedno viden (za razliko od .item-actions, ki se na
+   namizju pojavijo sele ob hoverju), da je avtorstvo takoj razvidno. */
+.item-avatar {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(140deg, var(--accent), var(--accent-2));
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  cursor: default;
+}
+.item-avatar[hidden] { display: none; }
 .item.done .item-text {
   color: var(--text-soft);
   opacity: .72;
@@ -1314,6 +1334,13 @@ body.auth-locked .content { display: none; }
 
 /* Skupinske checkliste (zavihek "Skupinske checkliste"): bolj vidne -
    vecje besedilo + modra obarvanost, da izstopajo iz navadnega seznama. */
+.group-cl-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.group-cl-row .group-cl-btn { flex: 1 1 auto; min-width: 0; width: auto; }
+.group-cl-row .act-del-group { flex: 0 0 auto; }
 .group-cl-btn {
   padding: 10px 12px;
   border: 1px solid color-mix(in srgb, var(--accent-2) 40%, var(--line));

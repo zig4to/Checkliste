@@ -26,6 +26,16 @@ const THEME_KEY   = "checkliste.theme";
 /** Ustvari kratek unikaten ID. */
 const uid = (p = "id") => `${p}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 
+/** Kratica za avatar krogec iz prikaznega imena ali e-poste,
+ *  npr. "Nejc Tomše" -> "NT", "nejctomse13@gmail.com" -> "NE". */
+function initialsFromName(name) {
+  const base = String(name || "").split("@")[0].trim();
+  const parts = base.split(/\s+/).filter(Boolean);
+  if (!parts.length) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 /** Globok clone (dovolj za naše navadne objekte). */
 const clone = (obj) => JSON.parse(JSON.stringify(obj));
 
@@ -201,7 +211,7 @@ function save() {
 /* ---------- Dostop do trenutne checkliste ---------- */
 
 /* Predogled deljene checkliste druge osebe (samo za ogled; se ne shranjuje). */
-let preview = null; // { checklist, email }
+let preview = null; // { checklist, email, displayName }
 
 /** Uporabnikova lastna aktivna checklista (ne glede na predogled). */
 const ownActive = () => store.checklists.find((c) => c.id === store.activeId) || store.checklists[0];
@@ -387,6 +397,9 @@ function renderProgress() {
 function renderCategories() {
   const cl = getActive();
   els.categoryList.innerHTML = "";
+  // Avatar krogec (kdo je dodal element) prikazemo samo na skupinskih
+  // checklistah - tam ima vec ljudi svoj vnos, drugje je nepotreben sum.
+  const isGroup = !preview && myGroupIds.includes(cl.id);
 
   if (preview) els.categoryList.appendChild(buildPreviewBar());
 
@@ -425,7 +438,7 @@ function renderCategories() {
     // Elementi
     const list = node.querySelector(".item-list");
     cat.items.forEach((item, itemIndex) => {
-      list.appendChild(renderItem(cat, item, itemIndex));
+      list.appendChild(renderItem(cat, item, itemIndex, isGroup));
     });
 
     els.categoryList.appendChild(node);
@@ -433,13 +446,27 @@ function renderCategories() {
 }
 
 /** Izriše en element. */
-function renderItem(cat, item, itemIndex) {
+function renderItem(cat, item, itemIndex, isGroup) {
   const li = els.tplItem.content.firstElementChild.cloneNode(true);
   li.dataset.itemId = item.id;
   if (item.done) li.classList.add("done");
 
   li.querySelector(".chk").checked = item.done;
   li.querySelector(".item-text").textContent = item.text;
+
+  // Avatar krogec z zacetnicama (ime + priimek iz display_name, sicer iz
+  // e-poste) - pove, kdo je ta element dodal na skupinski checklisti.
+  const avatar = li.querySelector(".item-avatar");
+  if (avatar) {
+    if (isGroup && item.addedBy) {
+      avatar.textContent = initialsFromName(item.addedBy);
+      avatar.title = "Dodal(a): " + item.addedBy;
+      avatar.hidden = false;
+    } else {
+      avatar.hidden = true;
+    }
+  }
+
   li.querySelector(".act-item-up").disabled = itemIndex === 0;
   li.querySelector(".act-item-down").disabled = itemIndex === cat.items.length - 1;
 
@@ -587,7 +614,10 @@ async function addItem(catId) {
     await confirmDialog(`Element «${text}» že obstaja na tej checklisti.`, "Podvojen element");
     return;
   }
-  cat.items.push({ id: uid("it"), text, done: false });
+  // Kdo je dodal - uporabljeno za avatar krogec pri elementu na skupinskih
+  // checklistah. Prikazno ime ima prednost, sicer e-posta.
+  const addedBy = Auth.displayName() || Auth.email() || null;
+  cat.items.push({ id: uid("it"), text, done: false, addedBy });
   if (cat.collapsed) cat.collapsed = false;
   renderAll();
 }
@@ -776,7 +806,8 @@ function normalizeChecklist(cl) {
       items: (cat.items || []).map((it) => ({
         id: it.id || uid("it"),
         text: it.text || "",
-        done: !!it.done
+        done: !!it.done,
+        addedBy: it.addedBy || null
       }))
     }))
   };
@@ -1468,6 +1499,9 @@ const Auth = {
 
   userId() { return this.user ? this.user.id : null; },
   email()  { return this.user ? this.user.email : null; },
+  /** Prikazno ime, ce ga ima uporabnik nastavljenega (auth.users.raw_user_meta_data.display_name),
+   *  sicer null - takrat se povsod v prikazu pade nazaj na e-posto. */
+  displayName() { return (this.user && this.user.user_metadata && this.user.user_metadata.display_name) || null; },
 
   async start({ onSignedIn, onSignedOut }) {
     this._onIn = onSignedIn;
@@ -1646,7 +1680,10 @@ const Auth = {
     const updated_at = new Date().toISOString();
     const { error } = await this.client
       .from(SHARE_TABLE)
-      .upsert({ user_id: uid, email: this.email(), checklists, updated_at }, { onConflict: "user_id" });
+      .upsert(
+        { user_id: uid, email: this.email(), display_name: this.displayName(), checklists, updated_at },
+        { onConflict: "user_id" }
+      );
     if (error) throw error;
   },
 
@@ -1677,7 +1714,7 @@ const Auth = {
     if (!uid) return [];
     const { data, error } = await this.client
       .from(SHARE_TABLE)
-      .select("user_id, email, checklists, updated_at")
+      .select("user_id, email, display_name, checklists, updated_at")
       .neq("user_id", uid)
       .order("updated_at", { ascending: false });
     if (error) throw error;
@@ -1690,7 +1727,7 @@ const Auth = {
   async groupChecklists() {
     const { data, error } = await this.client
       .from(GROUP_TABLE)
-      .select("id, name, checklist, email, updated_at")
+      .select("id, name, checklist, created_by, email, display_name, updated_at")
       .order("updated_at", { ascending: false });
     if (error) throw error;
     return data || [];
@@ -1715,10 +1752,18 @@ const Auth = {
     if (!uid) throw new Error("Ni prijave.");
     const updated_at = new Date().toISOString();
     const email = this.email();
+    const display_name = this.displayName();
     const rows = checklists.map((cl) => ({
-      id: cl.id, name: cl.name, checklist: cl, created_by: uid, email, updated_at
+      id: cl.id, name: cl.name, checklist: cl, created_by: uid, email, display_name, updated_at
     }));
     const { error } = await this.client.from(GROUP_TABLE).upsert(rows, { onConflict: "id" });
+    if (error) throw error;
+  },
+
+  /** Izbriše skupinsko checklisto (vrstico v group_checklists). RLS dovoljuje
+   *  samo pravemu ustvarjalcu - gumb za brisanje se zato prikaze samo njemu. */
+  async deleteGroupChecklist(id) {
+    const { error } = await this.client.from(GROUP_TABLE).delete().eq("id", id);
     if (error) throw error;
   },
 
@@ -1912,7 +1957,7 @@ function cleanChecklistForShare(cl) {
     categories: (cl.categories || []).map((cat) => ({
       id: cat.id,
       name: cat.name,
-      items: (cat.items || []).map((it) => ({ id: it.id, text: it.text }))
+      items: (cat.items || []).map((it) => ({ id: it.id, text: it.text, addedBy: it.addedBy || null }))
     }))
   };
 }
@@ -2047,10 +2092,12 @@ async function loadMyGroupIds() {
   } catch (e) {
     myGroupIds = [];
   }
-  // Podatki so priteceli asinhrono, po tem ko je bil izbirnik ze izrisan
-  // (brez tega bi bila modra oznaka po osvezitvi strani vidna sele ob
-  // naslednjem izrisu - videti je, kot da je checklista "izgubila" status).
-  if (store) renderSelect();
+  // Podatki so priteceli asinhrono, po tem ko je bila stran ze izrisana
+  // (brez tega bi bila modra oznaka v izbirniku IN avatar krogci pri
+  // elementih vidni sele ob naslednjem nakljucnem izrisu - npr. šele ko bi
+  // uporabnik nekaj dodal/uredil - kar je bilo videti, kot da se avatarji
+  // "sploh ne pokažejo" ali se pokažejo šele z zamikom).
+  if (store) { renderSelect(); renderCategories(); }
   // Zivo posodabljanje lovi samo spremembe, ki se zgodijo, medtem ko smo
   // POVEZANI in gledamo to checklisto - karkoli se je spremenilo, medtem
   // ko nas ni bilo (zaprt zavihek, druga checklista odprta ...), se sicer
@@ -2126,7 +2173,7 @@ async function markActiveAsGroup() {
     await Auth.pushGroupChecklists([cleanChecklistForShare(cl)]);
     if (!myGroupIds.includes(cl.id)) myGroupIds.push(cl.id);
     renderSelect(); // takoj pokazi modro ikonco + zazeni zivo narocnino
-    alert(`"${cl.name}" je zdaj skupinska checklista - vidna bo v meniju "Deljeno" → "Skupinske checkliste", spremembe pa se bodo samodejno posodabljale.`);
+    alert("Checklista bo dodana v Skupinske checkliste.");
   } catch (e) {
     console.warn("Checkliste ni bilo mogoče narediti skupinske.", e);
     alert(shareErrorText(e));
@@ -2353,8 +2400,9 @@ function renderSharedUsers(feed) {
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' +
       '<span></span>' +
       '<svg class="share-caret" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5 6 6.5 11 1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    // Zaenkrat brez pravega imena/priimka: pokazi del e-naslova pred "@".
-    btn.querySelector("span").textContent = (u.email || "").split("@")[0] || "—";
+    // Ce ima uporabnik nastavljeno prikazno ime, pokazi njega, sicer padi
+    // nazaj na del e-naslova pred "@".
+    btn.querySelector("span").textContent = u.display_name || (u.email || "").split("@")[0] || "—";
 
     const ul = document.createElement("ul");
     ul.className = "shared-user-lists";
@@ -2365,7 +2413,7 @@ function renderSharedUsers(feed) {
       open.type = "button";
       open.className = "shared-cl-btn";
       open.textContent = cl.name;
-      open.addEventListener("click", () => openPreview(cl, u.email));
+      open.addEventListener("click", () => openPreview(cl, u.email, u.display_name));
       li.appendChild(open);
       ul.appendChild(li);
     });
@@ -2429,6 +2477,9 @@ function renderGroupChecklists(rows) {
   }
 
   rows.forEach((row) => {
+    const wrap = document.createElement("div");
+    wrap.className = "group-cl-row";
+
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "shared-user-btn group-cl-btn";
@@ -2437,9 +2488,40 @@ function renderGroupChecklists(rows) {
       '<span class="group-cl-name"></span>' +
       '<span class="group-cl-author"></span>';
     btn.querySelector(".group-cl-name").textContent = row.name || "—";
-    btn.querySelector(".group-cl-author").textContent = row.email ? row.email.split("@")[0] : "";
+    btn.querySelector(".group-cl-author").textContent =
+      row.display_name || (row.email ? row.email.split("@")[0] : "");
     btn.addEventListener("click", () => openGroupChecklist(row));
-    box.appendChild(btn);
+    wrap.appendChild(btn);
+
+    // Izbrisati sme samo pravi ustvarjalec (enako kot RLS politika "group delete own").
+    if (row.created_by && row.created_by === Auth.userId()) {
+      const del = document.createElement("button");
+      del.type = "button";
+      del.className = "mini-btn danger act-del-group";
+      del.title = "Izbriši skupinsko checklisto";
+      del.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
+      del.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const ok = await confirmDialog(
+          `Res izbrišem skupinsko checklisto «${row.name}»? Kdor jo je ze odprl, obdrzi svojo kopijo, ne bo pa se vec zivo posodabljala.`,
+          "Izbriši skupinsko checklisto"
+        );
+        if (!ok) return;
+        try {
+          await Auth.deleteGroupChecklist(row.id);
+        } catch (err) {
+          console.warn("Skupinske checkliste ni bilo mogoče izbrisati.", err);
+          alert(shareErrorText(err));
+          return;
+        }
+        myGroupIds = myGroupIds.filter((id) => id !== row.id);
+        loadGroupChecklists();
+        renderSelect(); // odstrani modro ikonco pri sebi + po potrebi prekine zivo narocnino
+      });
+      wrap.appendChild(del);
+    }
+
+    box.appendChild(wrap);
   });
 }
 
@@ -2483,7 +2565,9 @@ function buildPreviewBar() {
   const strong = document.createElement("strong");
   strong.textContent = preview.checklist.name;
   meta.append(strong);
-  if (preview.email) meta.append(document.createTextNode(" · " + preview.email));
+  if (preview.displayName || preview.email) {
+    meta.append(document.createTextNode(" · " + (preview.displayName || preview.email)));
+  }
   txt.append(label, meta);
 
   const save = document.createElement("button");
@@ -2521,9 +2605,9 @@ function savePreviewToMyLists() {
 }
 
 /** Odpre checklisto druge osebe kot predogled v glavnem prikazu (samo ogled). */
-function openPreview(checklist, email) {
+function openPreview(checklist, email, displayName) {
   if (!checklist) return;
-  preview = { checklist: clone(checklist), email: email || "" };
+  preview = { checklist: clone(checklist), email: email || "", displayName: displayName || "" };
   document.body.classList.add("preview-mode");
   els.search.value = "";
   closeSharedMenu();
@@ -2555,7 +2639,7 @@ function bindSharedMenu() {
 }
 
 function updateAccountUI() {
-  if (userMenu.email) userMenu.email.textContent = Auth.email() || "—";
+  if (userMenu.email) userMenu.email.textContent = Auth.displayName() || Auth.email() || "—";
   updateSyncBadge();
 }
 
@@ -2655,6 +2739,16 @@ async function maybePull() {
 
 async function bootApp() {
   document.body.classList.remove("auth-locked");
+  // Sprozimo VZPOREDNO z branjem lastnih checklist (ne sele po njem) - to sta
+  // locena omrezna klica na drugi tabeli, nista odvisna od `store`. Prej sta
+  // cakala, da se `resolveUserStore()` v celoti konca, preden sta sploh
+  // zacela - na pocasnejsi/hladni povezavi se je to poznalo kot "prvih
+  // nekaj sekund/klicev ne dela pravilno" (avatarji/modre ikonce so se
+  // pojavili sele z vidnim zamikom). Obe funkciji ze sami preverita, ali je
+  // `store` v trenutku, ko se njun odgovor vrne, ze na voljo.
+  loadMySharedIds();               // za samodejno osveževanje deljene kopije
+  loadMyGroupIds();                // za samodejno osveževanje skupinske kopije
+
   store = await resolveUserStore();
 
   if (!listenersBound) {
@@ -2666,8 +2760,6 @@ async function bootApp() {
   renderAll({ persist: false });   // stanje je usklajeno; ne prožimo takoj potiska
   updateAccountUI();
   updateSyncBadge();
-  loadMySharedIds();               // za samodejno osveževanje deljene kopije
-  loadMyGroupIds();                // za samodejno osveževanje skupinske kopije
   maybeInstallPromoAfterLogin();
 }
 
