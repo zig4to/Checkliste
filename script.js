@@ -2142,11 +2142,16 @@ async function refreshGroupChecklist(id) {
   }
 }
 
+// Skupinske checkliste so mišljene kot žive - kratek zamik samo zdruzi
+// zaporedne akcije (npr. hitro dodajanje vec elementov) v en sam potisk,
+// ne sme pa opazno zavlačevati, kdaj ga drugi uporabniki vidijo.
+const GROUP_RESYNC_DEBOUNCE_MS = 400;
+
 /** Po urejanju z zamikom potisne svežo različico skupinskih checklist v oblak. */
 function queueGroupResync() {
   if (!myGroupIds.length || !Auth.configured() || !navigator.onLine) return;
   clearTimeout(_groupResyncTimer);
-  _groupResyncTimer = setTimeout(resyncGroup, 1500);
+  _groupResyncTimer = setTimeout(resyncGroup, GROUP_RESYNC_DEBOUNCE_MS);
 }
 
 async function resyncGroup() {
@@ -2746,8 +2751,8 @@ async function bootApp() {
   // nekaj sekund/klicev ne dela pravilno" (avatarji/modre ikonce so se
   // pojavili sele z vidnim zamikom). Obe funkciji ze sami preverita, ali je
   // `store` v trenutku, ko se njun odgovor vrne, ze na voljo.
-  loadMySharedIds();               // za samodejno osveževanje deljene kopije
-  loadMyGroupIds();                // za samodejno osveževanje skupinske kopije
+  loadMySharedIds();                        // za samodejno osveževanje deljene kopije
+  const groupIdsReady = loadMyGroupIds();   // za samodejno osveževanje skupinske kopije
 
   store = await resolveUserStore();
 
@@ -2761,6 +2766,18 @@ async function bootApp() {
   updateAccountUI();
   updateSyncBadge();
   maybeInstallPromoAfterLogin();
+
+  // Varovalo proti dirki: loadMyGroupIds() zgoraj se je sprozil VZPOREDNO s
+  // clientom store-om, se ni bil na voljo, ko se je vrnil odgovor - njegova
+  // notranja osvezitev/izris sta se takrat tiho izpustila (glej komentar
+  // zgoraj) in nic ju ni ponovilo. `store` je tu ze zagotovo nastavljen, zato
+  // tokrat zares izvedemo osvezitev - podvojen klic je poceni in neskodljiv.
+  groupIdsReady.then(() => {
+    if (!store) return;
+    renderSelect();
+    renderCategories();
+    refreshAllMyGroupChecklists();
+  });
 }
 
 function teardownApp() {
