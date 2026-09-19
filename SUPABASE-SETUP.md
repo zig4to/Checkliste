@@ -192,16 +192,19 @@ end;
 $$;
 ```
 
-Prikazno ime uporabnika (`raw_user_meta_data.display_name` v `auth.users`) se
-samodejno vpiše v ta dva stolpca ob naslednjem potisku (deljenju / spremembi
-skupinske checkliste) - ročno ga ni treba prepisovati. Za obstoječe
-uporabnike, ki jim ga želiš nastaviti ročno (npr. ker se niso sami
-registrirali s tem poljem), v **SQL Editor**:
+Prikazno ime uporabnika (`raw_user_meta_data` v `auth.users`) se samodejno
+vpiše v ta dva stolpca ob naslednjem potisku (deljenju / spremembi skupinske
+checkliste) - ročno ga ni treba prepisovati. Aplikacija prebere prvo od
+`full_name`, `display_name`, `name` (v tem vrstnem redu) - `full_name`
+običajno samodejno nastavi ponudnik prijave (npr. Google), `display_name`
+pa je namenjen ročnemu nastavljanju. Za obstoječe uporabnike, ki jim
+želiš ime nastaviti ročno (npr. ker se niso registrirali prek ponudnika,
+ki ga nastavi sam), v **SQL Editor**:
 
 ```sql
 update auth.users
 set raw_user_meta_data = coalesce(raw_user_meta_data, '{}'::jsonb)
-    || jsonb_build_object('display_name', 'Ime Priimek')
+    || jsonb_build_object('full_name', 'Ime Priimek')
 where email = 'nekdo@example.com';
 ```
 

@@ -1499,9 +1499,15 @@ const Auth = {
 
   userId() { return this.user ? this.user.id : null; },
   email()  { return this.user ? this.user.email : null; },
-  /** Prikazno ime, ce ga ima uporabnik nastavljenega (auth.users.raw_user_meta_data.display_name),
-   *  sicer null - takrat se povsod v prikazu pade nazaj na e-posto. */
-  displayName() { return (this.user && this.user.user_metadata && this.user.user_metadata.display_name) || null; },
+  /** Prikazno ime, ce ga ima uporabnik nastavljenega (auth.users.raw_user_meta_data) -
+   *  "full_name" je polje, ki ga dejansko uporabljamo (npr. "Žiga Tomše" iz
+   *  Google prijave); "display_name"/"name" sta obdrzana kot rezerva za
+   *  primere, ko je bilo ime nastavljeno rocno prek SQL. Sicer null - takrat
+   *  se povsod v prikazu pade nazaj na e-posto. */
+  displayName() {
+    const meta = this.user && this.user.user_metadata;
+    return (meta && (meta.full_name || meta.display_name || meta.name)) || null;
+  },
 
   async start({ onSignedIn, onSignedOut }) {
     this._onIn = onSignedIn;
