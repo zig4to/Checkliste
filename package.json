@@ -1,0 +1,10 @@
+{
+  "name": "checkliste",
+  "private": true,
+  "config": {
+    "port": 8083
+  },
+  "scripts": {
+    "start": "node serve.js"
+  }
+}
