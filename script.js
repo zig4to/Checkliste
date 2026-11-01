@@ -1309,13 +1309,23 @@ function ipBuildModal() {
   return ov;
 }
 
+// Ročna navodila, ko brskalnik ne ponudi samodejnega okna za namestitev.
+function ipManualHint() {
+  const ua = navigator.userAgent;
+  if (ipIsIOS()) return "V Safariju: Deli → Dodaj na začetni zaslon.";
+  if (/Android/i.test(ua)) return "V Chromu: meni ⋮ → »Namesti aplikacijo« (če je ni, je aplikacija že nameščena).";
+  if (/Firefox//i.test(ua)) return "Firefox namestitve teh aplikacij ne podpira — odpri stran v Chromu ali Edge.";
+  return "V Chromu ali Edge: ikona za namestitev v naslovni vrstici ali meni ⋮ → »Namesti aplikacijo«.";
+}
+
 function ipOpen() {
   const ov = ipBuildModal();
   ipIosVariant = !deferredInstallPrompt && ipIsIOS();
   const label = ov.querySelector(".ip-label");
   const cancel = ov.querySelector(".ip-cancel");
-  if (ipIosVariant) {
-    ov.querySelector(".ip-text").textContent = "V Safariju: Deli → Dodaj na začetni zaslon.";
+  if (!deferredInstallPrompt) {
+    // iOS ali brez ponudbe brskalnika (npr. ob odprtju iz TomStudios) — navodila.
+    ov.querySelector(".ip-text").textContent = ipManualHint();
     label.textContent = "Razumem";
     cancel.hidden = true;
   } else {
@@ -1360,6 +1370,26 @@ function maybeInstallPromoAfterLogin() {
   if (!deferredInstallPrompt && !ipIsIOS()) { ipPending = true; return; }
   ipTriggerOpen();
 }
+
+// Gumb za namestitev na kartici v TomStudios odpre aplikacijo s ?namesti=1:
+// okno za namestitev pokazemo takoj, ne glede na stevec prikazov.
+(function ipForcedFromHub() {
+  let url;
+  try { url = new URL(location.href); } catch (e) { return; }
+  if (url.searchParams.get("namesti") !== "1") return;
+  url.searchParams.delete("namesti");
+  try { history.replaceState(history.state, "", url.pathname + url.search + url.hash); } catch (e) { /* ni pomembno */ }
+  if (isStandalone()) return;
+  let shown = false;
+  const show = () => {
+    if (shown) return;
+    shown = true;
+    if (document.body) ipOpen();
+    else document.addEventListener("DOMContentLoaded", ipOpen);
+  };
+  window.addEventListener("beforeinstallprompt", () => setTimeout(show, 150));
+  setTimeout(show, ipIsIOS() ? 600 : 2500);
+})();
 
 // Ce beforeinstallprompt pride sele po prijavi, takrat pokazi okno.
 window.addEventListener("beforeinstallprompt", () => {
