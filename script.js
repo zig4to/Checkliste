@@ -1314,7 +1314,7 @@ function ipManualHint() {
   const ua = navigator.userAgent;
   if (ipIsIOS()) return "V Safariju: Deli → Dodaj na začetni zaslon.";
   if (/Android/i.test(ua)) return "V Chromu: meni ⋮ → »Namesti aplikacijo« (če je ni, je aplikacija že nameščena).";
-  if (/Firefox//i.test(ua)) return "Firefox namestitve teh aplikacij ne podpira — odpri stran v Chromu ali Edge.";
+  if (/Firefox\//i.test(ua)) return "Firefox namestitve teh aplikacij ne podpira — odpri stran v Chromu ali Edge.";
   return "V Chromu ali Edge: ikona za namestitev v naslovni vrstici ali meni ⋮ → »Namesti aplikacijo«.";
 }
 
@@ -1397,15 +1397,12 @@ function maybeInstallPromoAfterLogin() {
     notice("Aplikacija je že nameščena.");
     return;
   }
-  let shown = false;
-  const show = () => {
-    if (shown) return;
-    shown = true;
-    if (document.body) ipOpen();
-    else document.addEventListener("DOMContentLoaded", ipOpen);
-  };
-  window.addEventListener("beforeinstallprompt", () => setTimeout(show, 150));
-  setTimeout(show, ipIsIOS() ? 600 : 2500);
+  // Okno takoj; ko pride ponudba brskalnika, se odprto okno preklopi na "Namesti".
+  if (document.body) ipOpen();
+  else document.addEventListener("DOMContentLoaded", ipOpen);
+  window.addEventListener("beforeinstallprompt", () => {
+    setTimeout(() => { if (ipModal && !ipModal.hidden) ipOpen(); }, 50);
+  });
 })();
 
 // Ce beforeinstallprompt pride sele po prijavi, takrat pokazi okno.
