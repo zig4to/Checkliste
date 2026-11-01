@@ -1379,7 +1379,24 @@ function maybeInstallPromoAfterLogin() {
   if (url.searchParams.get("namesti") !== "1") return;
   url.searchParams.delete("namesti");
   try { history.replaceState(history.state, "", url.pathname + url.search + url.hash); } catch (e) { /* ni pomembno */ }
-  if (isStandalone()) return;
+  // Kratko obvestilo na dnu zaslona (npr. ko je aplikacija že nameščena).
+  function notice(text) {
+    var el = document.createElement("div");
+    el.textContent = text;
+    el.setAttribute("role", "status");
+    el.style.cssText = "position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:2147483000;max-width:calc(100% - 32px);box-sizing:border-box;padding:10px 18px;border-radius:999px;background:#12131a;color:#f4f5f7;border:1px solid rgba(255,255,255,.14);font:500 14px system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;text-align:center;box-shadow:0 12px 30px -8px rgba(0,0,0,.5);transition:opacity .3s";
+    var add = function () {
+      document.body.appendChild(el);
+      setTimeout(function () { el.style.opacity = "0"; }, 3000);
+      setTimeout(function () { el.remove(); }, 3400);
+    };
+    if (document.body) add();
+    else document.addEventListener("DOMContentLoaded", add);
+  }
+  if (isStandalone()) {
+    notice("Aplikacija je že nameščena.");
+    return;
+  }
   let shown = false;
   const show = () => {
     if (shown) return;
