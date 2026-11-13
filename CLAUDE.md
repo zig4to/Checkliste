@@ -59,7 +59,7 @@ Both mechanisms funnel through `applyRemoteGroupUpdate(row)`, which merges incom
 Opening someone else's **shared** checklist (`openPreview()`) is read-only — sets the module-level `preview` variable, shows a "Shrani checklisto" bar to copy it into your own list, and `save()` no-ops while `preview` is set. Opening a **group** checklist (`openGroupChecklist()`) is different: it's copied directly into the user's own `store.checklists` (same `id` as the group row) and immediately becomes fully editable, no preview step — that's how live co-editing works.
 
 ### Auth / SSO
-Supabase email+password auth (see `authGate`/`Auth.start()`). Also supports SSO handoff from an external "TomsStudios" hub: a URL hash of `#sb_at=<access_token>&sb_rt=<refresh_token>` is exchanged for a session (`Auth._trySsoLogin()`); `index.html` has an inline pre-paint `<script>` that shows a loader (`.sso-pending`) before this resolves, to avoid a login-form flash.
+Supabase email+password auth (see `authGate`/`Auth.start()`). Also supports SSO handoff from an external "Bitneverse" hub: a URL hash of `#sb_at=<access_token>&sb_rt=<refresh_token>` is exchanged for a session (`Auth._trySsoLogin()`); `index.html` has an inline pre-paint `<script>` that shows a loader (`.sso-pending`) before this resolves, to avoid a login-form flash.
 
 ### Other notes
 - Theme (light/dark) is stored per-device (`localStorage`), not synced to the account.

@@ -1324,7 +1324,7 @@ function ipOpen() {
   const label = ov.querySelector(".ip-label");
   const cancel = ov.querySelector(".ip-cancel");
   if (!deferredInstallPrompt) {
-    // iOS ali brez ponudbe brskalnika (npr. ob odprtju iz TomStudios) — navodila.
+    // iOS ali brez ponudbe brskalnika (npr. ob odprtju iz Bitneverse) — navodila.
     ov.querySelector(".ip-text").textContent = ipManualHint();
     label.textContent = "Razumem";
     cancel.hidden = true;
@@ -1371,7 +1371,7 @@ function maybeInstallPromoAfterLogin() {
   ipTriggerOpen();
 }
 
-// Gumb za namestitev na kartici v TomStudios odpre aplikacijo s ?namesti=1:
+// Gumb za namestitev na kartici v Bitneverse odpre aplikacijo s ?namesti=1:
 // okno za namestitev pokazemo takoj, ne glede na stevec prikazov.
 (function ipForcedFromHub() {
   let url;
@@ -1610,7 +1610,7 @@ const Auth = {
       if (document.visibilityState === "visible") maybePull();
     });
 
-    // Prijava iz huba (TomsStudios): naslov lahko nosi
+    // Prijava iz huba (Bitneverse): naslov lahko nosi
     // #sb_at=<access_token>&sb_rt=<refresh_token>. Zamenjamo ju za sejo; med
     // tem je viden nalagalnik (glej .sso-pending v index.html in style.css).
     await this._trySsoLogin();
